@@ -1,0 +1,105 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.python-version
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.npm
+.yarn
+.pnp.*
+.next/
+out/
+.nuxt
+.cache/
+.parcel-cache/
+deno.lock
+
+# IDEs and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Project specific
+# Absolution
+absolution/dist/
+absolution/.coverage
+absolution/htmlcov/
+
+# Dataset Generator
+dataset-generator/dist/
+dataset-generator/.coverage
+dataset-generator/htmlcov/
+
+# Firewall App
+firewall-app/dist/
+firewall-app/.coverage
+firewall-app/htmlcov/
+
+# www
+www/dist/
+www/.next/
+www/out/
+www/.nuxt/
+www/.cache/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+.nuxt/
+.cache/
+
+# System Files
+.DS_Store
+Thumbs.db 

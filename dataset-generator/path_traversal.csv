@@ -1,0 +1,54 @@
+exploit,label,description
+%00,Path Traversal,NULL Bytes
+passwd%00index,Path Traversal,NULL Bytes
+.%00./,Path Traversal,NULL Bytes
+..;/,Path Traversal,Reverse Proxy URL Implementation
+/etc/issue,Path Traversal,Linux Files Operating System and Informations
+/etc/group,Path Traversal,Linux Files Operating System and Informations
+/etc/hosts,Path Traversal,Linux Files Operating System and Informations
+/etc/motd,Path Traversal,Linux Files Operating System and Informations
+/proc/[0-9]*/fd/[0-9]*,Path Traversal,Linux Files Processes
+/proc/self/environ,Path Traversal,Linux Files Processes
+/proc/version,Path Traversal,Linux Files Processes
+/proc/cmdline,Path Traversal,Linux Files Processes
+/proc/sched_debug,Path Traversal,Linux Files Processes
+/proc/mounts,Path Traversal,Linux Files Processes
+/proc/net/arp,Path Traversal,Linux Files Network
+/proc/net/route,Path Traversal,Linux Files Network
+/proc/net/tcp,Path Traversal,Linux Files Network
+/proc/net/udp,Path Traversal,Linux Files Network
+/proc/self/cwd/index.php,Path Traversal,Linux Files Current Path
+/proc/self/cwd/main.py,Path Traversal,Linux Files Current Path
+/var/lib/mlocate/mlocate.db,Path Traversal,Linux Files Indexing
+/var/lib/plocate/plocate.db,Path Traversal,Linux Files Indexing
+/var/lib/mlocate.db,Path Traversal,Linux Files Indexing
+/etc/passwd,Path Traversal,Linux Files Credentials and history
+/etc/shadow,Path Traversal,Linux Files Credentials and history
+/home/$USER/.bash_history,Path Traversal,Linux Files Credentials and history
+/home/$USER/.ssh/id_rsa,Path Traversal,Linux Files Credentials and history
+/etc/mysql/my.cnf,Path Traversal,Linux Files Credentials and history
+/run/secrets/kubernetes.io/serviceaccount/token,Path Traversal,Linux Files Kubernetes
+/run/secrets/kubernetes.io/serviceaccount/namespace,Path Traversal,Linux Files Kubernetes
+/run/secrets/kubernetes.io/serviceaccount/certificate,Path Traversal,Linux Files Kubernetes
+/var/run/secrets/kubernetes.io/serviceaccount,Path Traversal,Linux Files Kubernetes
+c:/inetpub/logs/logfiles,Path Traversal,Windows Files Operating System and Informations
+c:/inetpub/wwwroot/global.asa,Path Traversal,Windows Files Operating System and Informations
+c:/inetpub/wwwroot/index.asp,Path Traversal,Windows Files Operating System and Informations
+c:/inetpub/wwwroot/web.config,Path Traversal,Windows Files Operating System and Informations
+c:/sysprep.inf,Path Traversal,Windows Files Operating System and Informations
+c:/sysprep.xml,Path Traversal,Windows Files Operating System and Informations
+c:/sysprep/sysprep.inf,Path Traversal,Windows Files Operating System and Informations
+c:/sysprep/sysprep.xml,Path Traversal,Windows Files Operating System and Informations
+c:/system32/inetsrv/metabase.xml,Path Traversal,Windows Files Operating System and Informations
+c:/sysprep.inf,Path Traversal,Windows Files Operating System and Informations
+c:/sysprep.xml,Path Traversal,Windows Files Operating System and Informations
+c:/sysprep/sysprep.inf,Path Traversal,Windows Files Operating System and Informations
+c:/sysprep/sysprep.xml,Path Traversal,Windows Files Operating System and Informations
+c:/system volume information/wpsettings.dat,Path Traversal,Windows Files Operating System and Informations
+c:/system32/inetsrv/metabase.xml,Path Traversal,Windows Files Operating System and Informations
+c:/unattend.txt,Path Traversal,Windows Files Operating System and Informations
+c:/unattend.xml,Path Traversal,Windows Files Operating System and Informations
+c:/unattended.txt,Path Traversal,Windows Files Operating System and Informations
+c:/unattended.xml,Path Traversal,Windows Files Operating System and Informations
+c:/windows/repair/sam,Path Traversal,Windows Files Operating System and Informations
+c:/windows/repair/system,Path Traversal,Windows Files Operating System and Informations

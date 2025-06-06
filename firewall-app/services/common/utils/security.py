@@ -1,0 +1,50 @@
+"""Security utilities.
+
+This module provides common security functions used across services.
+"""
+
+from passlib.context import CryptContext
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a password against its hash.
+    
+    Args:
+        plain_password: Plain text password
+        hashed_password: Hashed password to verify against
+        
+    Returns:
+        True if password matches hash
+    """
+    return pwd_context.verify(plain_password, hashed_password)
+
+def get_password_hash(password: str) -> str:
+    """Generate password hash.
+    
+    Args:
+        password: Password to hash
+        
+    Returns:
+        Hashed password
+    """
+    return pwd_context.hash(password)
+
+def is_valid_password(password: str) -> bool:
+    """Check if a password meets security requirements.
+    
+    Args:
+        password: Password to check
+        
+    Returns:
+        True if password is valid
+    """
+    if len(password) < 8:
+        return False
+    
+    has_upper = any(c.isupper() for c in password)
+    has_lower = any(c.islower() for c in password)
+    has_digit = any(c.isdigit() for c in password)
+    has_special = any(not c.isalnum() for c in password)
+    
+    return has_upper and has_lower and has_digit and has_special 

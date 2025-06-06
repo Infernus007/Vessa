@@ -1,0 +1,19 @@
+value,label,description
+%2e,.,URL Encoding
+%2f,/,URL Encoding
+%5c,\,URL Encoding
+%252e,.,Double URL Encoding
+%252f,/,Double URL Encoding
+%255c,\,Double URL Encoding
+%u002e,.,Unicode Encoding
+%u2215,/,Unicode Encoding
+%u2216,\,Unicode Encoding
+%c0%2e,.,Overlong UTF-8 Unicode Encoding
+%e0%40%ae,.,Overlong UTF-8 Unicode Encoding
+%c0%ae,.,Overlong UTF-8 Unicode Encoding
+%c0%af,/,Overlong UTF-8 Unicode Encoding
+%e0%80%af,/,Overlong UTF-8 Unicode Encoding
+%c0%2f,/,Overlong UTF-8 Unicode Encoding
+%c0%5c,\,Overlong UTF-8 Unicode Encoding
+%c0%80%5c,\,Overlong UTF-8 Unicode Encoding
+,,

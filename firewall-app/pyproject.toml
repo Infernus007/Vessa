@@ -1,0 +1,41 @@
+[tool.poetry]
+name = "firewall-app"
+version = "0.1.0"
+description = "ESSA (Vulnerability, Event, and Security Systems Analysis) is an advanced security incident management and analysis platform designed to optimize cybersecurity operations through automation, artificial intelligence, and real-time analytics"
+authors = ["Jash Naik <jashnaik2004@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.9"
+
+fastapi = "0.109.0"
+uvicorn = "0.27.0"
+python-dotenv = "1.0.0"
+pydantic = "2.6.0"
+pydantic-settings = "2.1.0"
+sqlalchemy = "1.4.23"
+alembic = "1.7.1"
+mysqlclient = "2.0.3"
+pymysql = "1.0.2"
+python-jose = "3.3.0"
+passlib = "1.7.4"
+bcrypt = "3.2.0"
+python-multipart = "0.0.5"
+PyJWT = "2.8.0"
+redis = "4.5.0"
+aioredis = "2.0.0"
+aiosmtplib = "2.0.0"
+httpx = "0.24.0"
+websockets = "10.4"
+humanize = "4.6.0"
+python-dateutil = "2.8.2"
+email-validator = "2.1.0"
+anyio = "3.6.2"
+
+absolution = { path = "../absolution" }
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

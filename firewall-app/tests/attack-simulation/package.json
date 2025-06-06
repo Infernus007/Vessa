@@ -1,0 +1,19 @@
+{
+  "name": "vessa-attack-simulation",
+  "version": "1.0.0",
+  "description": "Attack simulation server for testing VESSA security service",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test-runner.js"
+  },
+  "dependencies": {
+    "axios": "^1.9.0",
+    "colors": "^1.4.0",
+    "commander": "^12.1.0",
+    "express": "^4.21.2"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
