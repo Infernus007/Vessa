@@ -152,6 +152,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Authors
 
 - Jash Naik <jashnaik2004@gmail.com>
+- Raj Shekhar <infojar001@gmail.com>
 
 ## Acknowledgments
 
