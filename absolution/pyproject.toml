@@ -2,11 +2,14 @@
 name = "absolution"
 version = "0.1.0"
 description = "Absolution is a pair of state-of-the-art machine learning model for detecting and classifying malicious HTTP requests, including binary and multi-class classification with OOD detection."
-
-
 authors = ["Jash Naik <jashnaik2004@gmail.com>"]
 license = "MIT"
 readme = "README.md"
+
+# Correct place for file includes!
+include = [
+    "src/absolution/Models/**"
+]
 
 [tool.poetry.dependencies]
 python = "^3.9"
@@ -17,11 +20,9 @@ typing-extensions = "^4.7.1"
 torchvision = "^0.22.1"
 torchaudio = "^2.7.1"
 
-
 [[tool.poetry.packages]]
 include = "absolution"
 from = "src"
-
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.4.0"

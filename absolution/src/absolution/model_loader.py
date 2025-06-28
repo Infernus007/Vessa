@@ -2,6 +2,16 @@ import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from typing import Dict, Any, Tuple
 import numpy as np
+import importlib.resources
+from pathlib import Path
+
+def get_model_dir(model_name: str) -> str:
+    """
+    Returns the absolute path to a model directory (e.g., 'binary-classifier' or 'multi-classifier')
+    inside the absolution.Models package, regardless of the current working directory.
+    """
+    with importlib.resources.path("absolution.Models", model_name) as p:
+        return str(p)
 
 class ModelLoader:
     def __init__(self, binary_model_path: str, multi_model_path: str, device: str = None):
@@ -25,12 +35,13 @@ class ModelLoader:
         
         # Load multi-class model
         self.multi_model = AutoModelForSequenceClassification.from_pretrained(
-            multi_model_path
+            multi_model_path,
+            use_safetensors=True
         ).to(self.device)
         self.multi_model.eval()
         
         # Energy score calculation
-        self.energy_threshold = -4  # Default threshold, can be adjusted
+        self.energy_threshold = -1  # Adjusted threshold for better classification
         
     def energy_score(self, logits: torch.Tensor, T: float = 1.0) -> float:
         """Calculate energy score for OOD detection."""
@@ -70,6 +81,15 @@ class ModelLoader:
         
         # Calculate energy score
         energy = self.energy_score(multi_out.logits)
+        
+        # Debug prints
+        print("[DEBUG] Input text:", text)
+        print("[DEBUG] Binary prediction index:", binary_pred)
+        print("[DEBUG] Binary probabilities:", binary_probs.cpu().numpy())
+        print("[DEBUG] Multi-class prediction index:", multi_pred_idx)
+        print("[DEBUG] Multi-class prediction label:", multi_pred_label)
+        print("[DEBUG] Multi-class probabilities:", multi_probs.cpu().numpy())
+        print("[DEBUG] Energy score:", energy)
         
         # Decision logic
         final_label = "benign"

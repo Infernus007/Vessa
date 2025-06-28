@@ -16,9 +16,26 @@ import socket
 import ipaddress
 import humanize
 from sqlalchemy.sql import func
-from absolution.model_loader import ModelLoader
+import numpy as np
+import os
+import sys
 
-from services.common.models.incident import Incident, MaliciousRequest, IncidentResponse
+# Try to import absolution package, with fallback
+try:
+    # Add the absolution package path to sys.path
+    absolution_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..', 'absolution', 'src')
+    if os.path.exists(absolution_path):
+        sys.path.insert(0, absolution_path)
+    
+    from absolution.model_loader import ModelLoader
+    ABSOLUTION_AVAILABLE = True
+    print("[INFO] Absolution package imported successfully")
+except ImportError as e:
+    print(f"[WARNING] Absolution package not available: {e}")
+    ABSOLUTION_AVAILABLE = False
+    ModelLoader = None
+
+from services.common.models.incident import Incident, MaliciousRequest, IncidentResponse, ResponseAction
 from services.common.models.user import User, APIKey
 from services.user.core.user_service import UserService
 from services.notification.core.notification_service import NotificationService
@@ -27,22 +44,48 @@ from services.common.models.notification import NotificationPriority
 class IncidentService:
     """Service for managing security incidents and request analysis."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session, static_analysis_enabled: int = 1, dynamic_analysis_enabled: int = 1):
         """Initialize the service.
         
         Args:
             db: Database session
+            static_analysis_enabled: 1 to enable static analysis, 0 to disable
+            dynamic_analysis_enabled: 1 to enable ML (dynamic) analysis, 0 to disable
         """
         self.db = db
         self.user_service = UserService(db)
         self.notification_service = NotificationService(db)
         self.threat_score = 0  # Initialize threat score
+        self.static_analysis_enabled = static_analysis_enabled
+        self.dynamic_analysis_enabled = dynamic_analysis_enabled
         
-        # Initialize the ML model loader
-        self.model_loader = ModelLoader(
-            binary_model_path="./Models/absolution",
-            multi_model_path="./Models/multibsolution"
-        )
+        # Initialize the ML model loader if available
+        self.model_loader = None
+        if ABSOLUTION_AVAILABLE and dynamic_analysis_enabled:
+            try:
+                # Use relative paths to the absolution package
+                # From: firewall-app/services/incident/core/incident_service.py
+                # To: vessa/absolution/src/absolution/Models/
+                # Need to go up 4 levels to reach vessa directory
+                absolution_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'absolution')
+                binary_model_path = os.path.join(absolution_dir, 'src', 'absolution', 'Models', 'binary-classifier')
+                multi_model_path = os.path.join(absolution_dir, 'src', 'absolution', 'Models', 'multi-classifier')
+                
+                if os.path.exists(binary_model_path) and os.path.exists(multi_model_path):
+                    self.model_loader = ModelLoader(binary_model_path, multi_model_path)
+                    print(f"[INFO] ML models loaded successfully from {absolution_dir}")
+                else:
+                    print(f"[WARNING] Model directories not found. Binary: {binary_model_path}, Multi: {multi_model_path}")
+                    self.dynamic_analysis_enabled = 0
+            except Exception as e:
+                print(f"[ERROR] Failed to load ML models: {str(e)}")
+                self.dynamic_analysis_enabled = 0
+        else:
+            if not ABSOLUTION_AVAILABLE:
+                print("[INFO] Absolution package not available, disabling dynamic analysis")
+                self.dynamic_analysis_enabled = 0
+            elif not dynamic_analysis_enabled:
+                print("[INFO] Dynamic analysis disabled by configuration")
         
         # Common patterns for threat detection
         self.suspicious_patterns = {
@@ -727,7 +770,7 @@ class IncidentService:
         api_key_id: Optional[str] = None,
         timestamp: Optional[datetime] = None
     ) -> Dict[str, Any]:
-        """Analyze a raw request for security threats using both static and ML-based analysis."""
+        """Analyze a raw request for security threats using static and/or ML-based analysis based on flags."""
         print(f"[DEBUG] Starting request analysis for path: {path}")
         self.threat_score = 0
         findings = []
@@ -740,35 +783,55 @@ class IncidentService:
             "nosql_injection": []
         }
 
-        # First, perform static analysis
-        static_analysis_result = self._perform_static_analysis(
-            path, url, method, headers, body, query_params, client_ip
-        )
-        
-        # If static analysis detects a high-confidence threat, skip ML analysis
-        if static_analysis_result["threat_score"] >= 0.75:
-            print("[DEBUG] High-confidence threat detected in static analysis, skipping ML analysis")
+        static_analysis_result = None
+        ml_analysis_result = None
+
+        # Perform static analysis if enabled
+        if self.static_analysis_enabled:
+            static_analysis_result = self._perform_static_analysis(
+                path, url, method, headers, body, query_params, client_ip
+            )
+            # If static analysis detects a high-confidence threat and dynamic is disabled, return
+            if not self.dynamic_analysis_enabled and static_analysis_result["threat_score"] >= 0.75:
+                print("[DEBUG] High-confidence threat detected in static analysis, skipping ML analysis (flag)")
+                return await self._create_analysis_result(
+                    static_analysis_result, path, url, method, headers, body,
+                    query_params, client_ip, api_key_id, timestamp
+                )
+
+        # Perform ML-based analysis if enabled
+        if self.dynamic_analysis_enabled:
+            print("[DEBUG] Performing ML-based analysis")
+            ml_analysis_result = self._perform_ml_analysis(
+                method, url, path, headers, body, query_params
+            )
+            # If static analysis is disabled, return ML result directly
+            if not self.static_analysis_enabled:
+                return await self._create_analysis_result(
+                    ml_analysis_result, path, url, method, headers, body,
+                    query_params, client_ip, api_key_id, timestamp
+                )
+
+        # If both are enabled, combine results
+        if self.static_analysis_enabled and self.dynamic_analysis_enabled:
+            combined_result = self._combine_analysis_results(
+                static_analysis_result, ml_analysis_result
+            )
             return await self._create_analysis_result(
-                static_analysis_result, path, url, method, headers, body,
+                combined_result, path, url, method, headers, body,
                 query_params, client_ip, api_key_id, timestamp
             )
 
-        # If static analysis is inconclusive or detects a low-confidence threat,
-        # proceed with ML-based analysis
-        print("[DEBUG] Performing ML-based analysis")
-        ml_analysis_result = self._perform_ml_analysis(
-            method, url, path, headers, body, query_params
-        )
-
-        # Combine results from both analyses
-        combined_result = self._combine_analysis_results(
-            static_analysis_result, ml_analysis_result
-        )
-
-        return await self._create_analysis_result(
-            combined_result, path, url, method, headers, body,
-            query_params, client_ip, api_key_id, timestamp
-        )
+        # If neither is enabled, return a default safe result
+        return {
+            "threat_score": 0.0,
+            "threat_type": "safe",
+            "findings": ["No analysis performed (both static and dynamic analysis disabled)."],
+            "should_block": False,
+            "incident_created": False,
+            "incident_id": None,
+            "threat_details": {}
+        }
 
     def _perform_static_analysis(
         self,
@@ -856,6 +919,15 @@ class IncidentService:
         query_params: Optional[Dict[str, str]]
     ) -> Dict[str, Any]:
         """Perform ML-based analysis using the model loader."""
+        # Check if model loader is available
+        if self.model_loader is None:
+            return {
+                "threat_score": 0.0,
+                "threat_type": "safe",
+                "findings": ["ML analysis not available - models not loaded"],
+                "ml_scores": {}
+            }
+        
         # Format request for ML analysis
         formatted_request = self._format_request_for_ml(
             method, url, path, headers, body, query_params
@@ -884,23 +956,34 @@ class IncidentService:
         body: Optional[Any],
         query_params: Optional[Dict[str, str]]
     ) -> str:
-        """Format request data for ML analysis."""
-        formatted = f"[METHOD] {method}\n"
-        formatted += f"[URL] {url}\n"
-        formatted += f"[PATH] {path}\n"
+        """Format request data for ML analysis as a proper HTTP request string."""
+        # Build the request line
+        request_line = f"{method} {path}"
+        
+        # Add query parameters to the path if present
+        if query_params:
+            query_string = "&".join([f"{k}={v}" for k, v in query_params.items()])
+            request_line += f"?{query_string}"
+        
+        request_line += " HTTP/1.1"
+        
+        # Build the formatted request
+        formatted = request_line + "\r\n"
         
         # Add headers
         for key, value in headers.items():
-            formatted += f"[{key.upper()}] {value}\n"
-            
-        # Add query parameters
-        if query_params:
-            formatted += f"[QUERY] {json.dumps(query_params)}\n"
-            
-        # Add body
+            formatted += f"{key}: {value}\r\n"
+        
+        # Add body if present
         if body:
-            formatted += f"[BODY] {json.dumps(body)}\n"
-            
+            formatted += "\r\n"
+            if isinstance(body, dict):
+                # Convert dict to form data
+                body_data = "&".join([f"{k}={v}" for k, v in body.items()])
+                formatted += body_data
+            else:
+                formatted += str(body)
+        
         return formatted
 
     def _combine_analysis_results(
@@ -965,6 +1048,9 @@ class IncidentService:
         # Add ML scores if available
         if "ml_scores" in analysis_result:
             threat_details["ml_analysis"] = analysis_result["ml_scores"]
+
+        # Make threat_details JSON serializable
+        threat_details = self.make_json_serializable(threat_details)
 
         final_result = {
             "threat_score": analysis_result["threat_score"],
@@ -1563,4 +1649,14 @@ Please review the request details and findings to determine if further action is
             return now - timedelta(days=7)
         elif time_range == "30d":
             return now - timedelta(days=30)
-        return datetime.min  # For "all" or invalid ranges 
+        return datetime.min  # For "all" or invalid ranges
+
+    def make_json_serializable(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, dict):
+            return {k: self.make_json_serializable(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [self.make_json_serializable(v) for v in obj]
+        else:
+            return obj 
