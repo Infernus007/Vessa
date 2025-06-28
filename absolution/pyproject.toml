@@ -2,7 +2,7 @@
 name = "absolution"
 version = "0.1.0"
 description = "Absolution is a pair of state-of-the-art machine learning model for detecting and classifying malicious HTTP requests, including binary and multi-class classification with OOD detection."
-authors = ["Jash Naik <jashnaik2004@gmail.com>"]
+authors = ["Jash Naik <jashnaik2004@gmail.com>", "Raj Shekhar <infojar001@gmail.com>"]
 license = "MIT"
 readme = "README.md"
 

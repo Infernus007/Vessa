@@ -2,6 +2,8 @@
 
 A state-of-the-art machine learning package for detecting and classifying malicious HTTP requests. Built with PyTorch and Transformers, Absolution provides both binary and multi-class classification capabilities with out-of-distribution detection.
 
+Note: Both models uses top to bottom approach to perform only specific tasks, therefore it is recommended to use it for training further is only for refining purposes and not multitasking. And the model DistillBert is best suited for classification and not text-generation.
+
 ## Features
 
 - Binary Classification: Detect malicious vs. benign requests
@@ -60,7 +62,7 @@ trainer.train(
 )
 
 # Save the model
-trainer.save_model("path/to/save/model.pt")
+trainer.save_model("path/to/save/model.pt") # this will save the new refined model over the older one which is to be used to iterate further.
 ```
 
 ## Development
@@ -104,6 +106,11 @@ absolution/
 3. Make your changes
 4. Run tests and linting
 5. Submit a pull request
+
+## Authors
+
+- Raj Shekhar infojar001@gmail.com
+- Jash Naik jashnaik2004@gmail.com
 
 ## License
 
