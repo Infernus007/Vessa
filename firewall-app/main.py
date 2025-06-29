@@ -17,6 +17,7 @@ from services.auth.api.routes import router as auth_router
 from services.user.api.routes import router as user_router
 from services.incident.api.routes import router as incident_router
 from services.notification.api.routes import router as notification_router
+from services.threat_intelligence.api.routes import router as threat_intelligence_router
 from services.common.middleware.rate_limit import RateLimitMiddleware
 
 # Load environment variables
@@ -66,6 +67,7 @@ app.include_router(auth_router, prefix="/auth")
 app.include_router(user_router, prefix="/users")
 app.include_router(incident_router, prefix="/incidents")
 app.include_router(notification_router, prefix="/notifications")
+app.include_router(threat_intelligence_router, prefix="/threat-intelligence")
 
 @app.get("/", tags=["Root"])
 async def root():

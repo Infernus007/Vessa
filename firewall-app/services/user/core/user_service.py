@@ -189,6 +189,33 @@ class UserService:
             
         return key
 
+    async def get_user_by_api_key(self, api_key: str) -> Optional[User]:
+        """Get a user by their API key.
+        
+        Args:
+            api_key: The API key to look up
+            
+        Returns:
+            User: The user associated with the API key if found and valid, None otherwise
+        """
+        key = self.db.query(APIKey).filter(
+            and_(
+                APIKey.key == api_key,
+                APIKey.is_active == True,
+                or_(
+                    APIKey.expires_at.is_(None),
+                    APIKey.expires_at > datetime.utcnow()
+                )
+            )
+        ).first()
+        
+        if not key:
+            return None
+            
+        # Get the user associated with this API key
+        user = self.db.query(User).filter(User.id == key.user_id).first()
+        return user
+
     async def create_api_key(
         self, 
         user_id: str,

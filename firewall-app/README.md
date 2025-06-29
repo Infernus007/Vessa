@@ -92,25 +92,8 @@ Response:
    ./start_server.sh
    
    # Or directly with Poetry
-   poetry run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-   ```
-
-## Docker Development
-
-```bash
-# Build and run with Docker Compose
-docker-compose up --build
-
-# Or run directly with Docker
-docker build -t firewall-app .
-docker run -p 8000:8000 firewall-app
-```
-
-## Project Structure
-
-```
-firewall-app/
-├── app/
+  poetry run uvicorn main:app --host 0.0.0.0 --port 8000
+ ├── app/
 │   ├── api/           # API routes and endpoints
 │   ├── core/          # Core application logic
 │   ├── models/        # Data models

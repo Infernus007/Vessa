@@ -77,6 +77,7 @@ class MaliciousRequestCreate(BaseModel):
     timestamp: datetime
     service_name: str = Field(..., max_length=255)
     service_version: Optional[str] = Field(None, max_length=50)
+    attack_type: Optional[str] = Field(None, max_length=100)  # Type of attack being simulated
 
 class RawRequestAnalysis(BaseModel):
     """Schema for analyzing raw request data from middleware."""

@@ -281,40 +281,81 @@ async def analyze_request(
     user_service: UserService = Depends(get_user_service),
     api_key: str = Depends(verify_api_key)
 ) -> Dict[str, Any]:
-    """Analyze a request for security threats."""
-    print(f"[DEBUG] Received request for analysis - Path: {request.request_path}, Method: {request.request_method}")
+    """Analyze a request for security threats with enhanced threat intelligence.
     
-    # Get user from API key
-    api_key_obj = await user_service.get_api_key(api_key)
-    print(f"[DEBUG] Validated API key for user: {api_key_obj.user_id}")
+    This endpoint now includes:
+    - Static pattern analysis
+    - Machine learning analysis (if enabled)
+    - Threat intelligence analysis (IP/domain/URL reputation, YARA rules)
+    - Comprehensive threat scoring
     
-    # Extract request details
-    headers = dict(request.request_headers)
+    Args:
+        request: Request data to analyze
+        service: Incident service instance
+        user_service: User service instance
+        api_key: API key for authentication
     
-    # Add client IP to headers if provided
-    if request.client_ip:
-        headers["x-forwarded-for"] = request.client_ip
-        print(f"[DEBUG] Added client IP to headers: {request.client_ip}")
-
-    print("[DEBUG] Calling analyze_raw_request...")
-    # Analyze the request
-    analysis = await service.analyze_raw_request(
-        method=request.request_method,
-        url=request.request_url,
-        path=request.request_path,
-        headers=headers,
-        body=request.request_body,
-        query_params=request.request_query_params,
-        client_ip=request.client_ip,
-        api_key_id=api_key_obj.id,  # Pass API key ID
-        timestamp=request.timestamp
-    )
+    Returns:
+        Enhanced threat analysis results
+    """
+    print(f"[DEBUG] Analyzing request from {request.client_ip}")
     
-    print(f"[INFO] Analysis complete - Threat Score: {analysis['threat_score']}, Type: {analysis.get('threat_type', 'none')}")
-    if analysis.get("incident_created"):
-        print(f"[INFO] Incident created with ID: {analysis.get('incident_id')}")
-
-    return ThreatAnalysisResponse(**analysis)
+    try:
+        # Get user from API key
+        user = await user_service.get_user_by_api_key(api_key)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid API key"
+            )
+        
+        # Extract user agent from headers
+        user_agent = request.request_headers.get("User-Agent", "")
+        
+        # Perform enhanced analysis with threat intelligence
+        analysis_result = await service.analyze_request(
+            source_ip=request.client_ip,
+            request_path=request.request_path,
+            request_method=request.request_method,
+            headers=request.request_headers,
+            body=request.request_body,
+            user_agent=user_agent
+        )
+        
+        # Add user context to analysis
+        analysis_result["analyzed_by"] = user.id
+        analysis_result["analysis_timestamp"] = datetime.utcnow().isoformat()
+        
+        # Create malicious request record if threat detected
+        if analysis_result["threat_score"] > 0:
+            malicious_request = service.add_malicious_request(
+                source_ip=request.client_ip,
+                request_path=request.request_path,
+                request_method=request.request_method,
+                threat_type=analysis_result["threat_type"],
+                threat_score=analysis_result["threat_score"],
+                headers=request.request_headers,
+                body=request.request_body,
+                user_agent=user_agent,
+                threat_details={
+                    "analysis_methods": analysis_result.get("analysis_methods", []),
+                    "static_analysis": analysis_result.get("static_analysis", {}),
+                    "threat_intelligence_analysis": analysis_result.get("threat_intelligence_analysis", {}),
+                    "confidence": analysis_result.get("confidence", 0.0),
+                    "recommendations": analysis_result.get("recommendations", [])
+                }
+            )
+            analysis_result["malicious_request_id"] = malicious_request.id
+        
+        print(f"[DEBUG] Analysis complete. Threat score: {analysis_result['threat_score']}")
+        return analysis_result
+        
+    except Exception as e:
+        print(f"[ERROR] Request analysis failed: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Analysis failed: {str(e)}"
+        )
 
 @router.post("/analyze/raw", response_model=ThreatAnalysisResponse)
 async def analyze_raw_request(

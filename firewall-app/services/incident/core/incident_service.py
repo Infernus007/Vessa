@@ -22,11 +22,6 @@ import sys
 
 # Try to import absolution package, with fallback
 try:
-    # Add the absolution package path to sys.path
-    absolution_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..', 'absolution', 'src')
-    if os.path.exists(absolution_path):
-        sys.path.insert(0, absolution_path)
-    
     from absolution.model_loader import ModelLoader
     ABSOLUTION_AVAILABLE = True
     print("[INFO] Absolution package imported successfully")
@@ -40,11 +35,12 @@ from services.common.models.user import User, APIKey
 from services.user.core.user_service import UserService
 from services.notification.core.notification_service import NotificationService
 from services.common.models.notification import NotificationPriority
+from services.incident.core.threat_intelligence import ThreatIntelligenceService
 
 class IncidentService:
     """Service for managing security incidents and request analysis."""
 
-    def __init__(self, db: Session, static_analysis_enabled: int = 1, dynamic_analysis_enabled: int = 1):
+    def __init__(self, db: Session, static_analysis_enabled: int = 0, dynamic_analysis_enabled: int = 1):
         """Initialize the service.
         
         Args:
@@ -63,20 +59,14 @@ class IncidentService:
         self.model_loader = None
         if ABSOLUTION_AVAILABLE and dynamic_analysis_enabled:
             try:
-                # Use relative paths to the absolution package
-                # From: firewall-app/services/incident/core/incident_service.py
-                # To: vessa/absolution/src/absolution/Models/
-                # Need to go up 4 levels to reach vessa directory
-                absolution_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'absolution')
-                binary_model_path = os.path.join(absolution_dir, 'src', 'absolution', 'Models', 'binary-classifier')
-                multi_model_path = os.path.join(absolution_dir, 'src', 'absolution', 'Models', 'multi-classifier')
+                # Use the ModelLoader with proper package paths
+                from absolution.model_loader import get_model_dir
                 
-                if os.path.exists(binary_model_path) and os.path.exists(multi_model_path):
-                    self.model_loader = ModelLoader(binary_model_path, multi_model_path)
-                    print(f"[INFO] ML models loaded successfully from {absolution_dir}")
-                else:
-                    print(f"[WARNING] Model directories not found. Binary: {binary_model_path}, Multi: {multi_model_path}")
-                    self.dynamic_analysis_enabled = 0
+                binary_model_path = get_model_dir("binary-classifier")
+                multi_model_path = get_model_dir("multi-classifier")
+                
+                self.model_loader = ModelLoader(binary_model_path, multi_model_path)
+                print(f"[INFO] ML models loaded successfully from absolution package")
             except Exception as e:
                 print(f"[ERROR] Failed to load ML models: {str(e)}")
                 self.dynamic_analysis_enabled = 0
@@ -477,7 +467,7 @@ class IncidentService:
             "page_size": page_size
         }
 
-    def analyze_request(
+    async def analyze_request(
         self,
         source_ip: str,
         request_path: str,
@@ -486,7 +476,7 @@ class IncidentService:
         body: Optional[Dict[str, Any]] = None,
         user_agent: Optional[str] = None
     ) -> Dict[str, Any]:
-        """Analyze a request for security threats.
+        """Analyze a request for security threats with enhanced threat intelligence.
         
         Args:
             source_ip: Source IP address
@@ -497,35 +487,324 @@ class IncidentService:
             user_agent: User agent string
             
         Returns:
-            Dict containing threat analysis results
+            Dict containing enhanced threat analysis results
         """
-        # TODO: Implement actual threat analysis logic
-        # This is a placeholder implementation
+        # Perform existing static analysis
+        static_analysis = self._perform_basic_static_analysis(
+            source_ip, request_path, request_method, headers, body, user_agent
+        )
+        
+        # Perform threat intelligence analysis
+        threat_intel_analysis = await self._perform_threat_intelligence_analysis(
+            source_ip, request_path, request_method, headers, body, user_agent
+        )
+        
+        # Combine results
+        combined_analysis = self._combine_analysis_results(
+            static_analysis, threat_intel_analysis
+        )
+        
+        return combined_analysis
+    
+    def _perform_basic_static_analysis(
+        self,
+        source_ip: str,
+        request_path: str,
+        request_method: str,
+        headers: Optional[Dict[str, str]] = None,
+        body: Optional[Dict[str, Any]] = None,
+        user_agent: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Perform comprehensive static analysis for attack detection."""
         threat_score = 0
         findings = []
-        threat_type = "unknown"
+        threat_type = "safe"
         
-        # Example checks
-        if headers and "X-Forwarded-For" in headers:
-            threat_score += 10
-            findings.append("Suspicious proxy usage detected")
+        # Convert all inputs to strings for pattern matching
+        path_str = str(request_path).lower()
+        body_str = str(body).lower() if body else ""
+        headers_str = str(headers).lower() if headers else ""
+        user_agent_str = str(user_agent).lower() if user_agent else ""
+        
+        # Combine all inputs for comprehensive analysis
+        combined_input = f"{path_str} {body_str} {headers_str} {user_agent_str}"
+        
+        # SQL Injection Detection
+        sql_patterns = [
+            r"(\'|\")\s*(or|and|not)\s*(\d|true|false|null)",
+            r"union\s+(all\s+)?select",
+            r"insert\s+into",
+            r"delete\s+from",
+            r"drop\s+table",
+            r"update\s+set",
+            r"(\'|\")\s*;\s*",
+            r"(\'|\")\s*--\s*",
+            r"(\'|\")\s*#\s*",
+            r"(\'|\")\s*/\*",
+            r"(\'|\")\s*or\s*1\s*=\s*1",
+            r"(\'|\")\s*or\s*true",
+            r"(\'|\")\s*or\s*false",
+            r"(\'|\")\s*and\s*1\s*=\s*1",
+            r"(\'|\")\s*and\s*true"
+        ]
+        
+        for pattern in sql_patterns:
+            if re.search(pattern, combined_input, re.IGNORECASE):
+                threat_score += 85
+                findings.append(f"SQL injection pattern detected: {pattern}")
+                threat_type = "sql_injection"
+                break
+        
+        # XSS Detection
+        xss_patterns = [
+            r"<script[^>]*>",
+            r"javascript:",
+            r"vbscript:",
+            r"on\w+\s*=",
+            r"eval\s*\(",
+            r"setTimeout\s*\(",
+            r"setInterval\s*\(",
+            r"alert\s*\(",
+            r"confirm\s*\(",
+            r"prompt\s*\(",
+            r"<iframe[^>]*>",
+            r"<object[^>]*>",
+            r"<embed[^>]*>",
+            r"<link[^>]*javascript:",
+            r"<img[^>]*onerror="
+        ]
+        
+        for pattern in xss_patterns:
+            if re.search(pattern, combined_input, re.IGNORECASE):
+                threat_score += 80
+                findings.append(f"XSS pattern detected: {pattern}")
+                threat_type = "xss"
+                break
+        
+        # Command Injection Detection
+        cmd_patterns = [
+            r"[;&|`]\s*[\w\-]+",
+            r"\$\([^)]*\)",
+            r"`[^`]*`",
+            r"\b(ping|nc|netcat|wget|curl|bash|sh|python|perl|ruby)\b",
+            r">\s*/[a-z]+/",
+            r"\|\s*[\w\-]+",
+            r"&&\s*[\w\-]+",
+            r"\|\|\s*[\w\-]+"
+        ]
+        
+        for pattern in cmd_patterns:
+            if re.search(pattern, combined_input, re.IGNORECASE):
+                threat_score += 90
+                findings.append(f"Command injection pattern detected: {pattern}")
+                threat_type = "command_injection"
+                break
+        
+        # Path Traversal Detection
+        path_patterns = [
+            r"\.\./",
+            r"\.\.\\",
+            r"%2e%2e%2f",
+            r"%2e%2e/",
+            r"%2e%2e%5c",
+            r"\.\.%2f",
+            r"\.\.%5c",
+            r"%252e%252e%252f",
+            r"%252e%252e%255c",
+            r"/etc/passwd",
+            r"/etc/shadow",
+            r"/etc/hosts",
+            r"c:\\windows\\system32",
+            r"windows\\system32\\drivers\\etc"
+        ]
+        
+        for pattern in path_patterns:
+            if re.search(pattern, combined_input, re.IGNORECASE):
+                threat_score += 85
+                findings.append(f"Path traversal pattern detected: {pattern}")
+                threat_type = "path_traversal"
+                break
+        
+        # NoSQL Injection Detection
+        nosql_patterns = [
+            r"\$\w+\s*:",
+            r"\$ne\s*:",
+            r"\$eq\s*:",
+            r"\$gt\s*:",
+            r"\$gte\s*:",
+            r"\$lt\s*:",
+            r"\$lte\s*:",
+            r"\$in\s*:",
+            r"\$nin\s*:",
+            r"\$all\s*:",
+            r"\$size\s*:",
+            r"\$exists\s*:",
+            r"\$type\s*:",
+            r"\$not\s*:",
+            r"\$mod\s*:",
+            r"\$text\s*:",
+            r"\$slice\s*:",
+            r"\$or\s*:",
+            r"\$and\s*:",
+            r"\$nor\s*:",
+            r"\$where\s*:",
+            r"\$regex\s*:"
+        ]
+        
+        for pattern in nosql_patterns:
+            if re.search(pattern, combined_input, re.IGNORECASE):
+                threat_score += 80
+                findings.append(f"NoSQL injection pattern detected: {pattern}")
+                threat_type = "nosql_injection"
+                break
+        
+        # Suspicious Headers Detection
+        if headers:
+            if "X-Forwarded-For" in headers:
+                threat_score += 10
+                findings.append("Suspicious proxy usage detected")
             
-        if body and isinstance(body, dict):
-            if any(key.lower().startswith(("script", "exec", "eval")) for key in body.keys()):
-                threat_score += 30
-                findings.append("Potential script injection detected")
-                threat_type = "injection"
-                
-        if request_path.lower().find("admin") >= 0:
+            # Check for suspicious user agents
+            user_agent = headers.get("user-agent", "").lower()
+            suspicious_agents = [
+                "curl", "python-requests", "wget", "nmap", "masscan", 
+                "sqlmap", "nikto", "zap", "burp", "acunetix"
+            ]
+            if any(agent in user_agent for agent in suspicious_agents):
+                threat_score += 20
+                findings.append(f"Suspicious user agent detected: {user_agent}")
+        
+        # Admin Access Attempts
+        if "admin" in path_str:
             threat_score += 20
             findings.append("Attempted admin access")
-            threat_type = "unauthorized_access"
-            
+            threat_type = "suspicious"
+        
+        # Normalize threat score to 0-1 range
+        normalized_score = min(threat_score, 100) / 100.0
+        
+        # Determine if should block (lower threshold for better security)
+        should_block = normalized_score >= 0.5  # Changed from 0.75 to 0.5
+        
         return {
-            "threat_score": min(threat_score, 100),
-            "threat_type": threat_type if threat_score > 0 else "none",
+            "threat_score": normalized_score,
+            "threat_type": self._validate_threat_type(threat_type if threat_score > 0 else "safe"),
             "findings": findings,
-            "should_block": threat_score >= 75
+            "should_block": should_block,
+            "analysis_type": "static"
+        }
+    
+    async def _perform_threat_intelligence_analysis(
+        self,
+        source_ip: str,
+        request_path: str,
+        request_method: str,
+        headers: Optional[Dict[str, str]] = None,
+        body: Optional[Dict[str, Any]] = None,
+        user_agent: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Perform threat intelligence analysis."""
+        try:
+            # Create ThreatIntelligenceService instance directly (no async context manager)
+            ti_service = ThreatIntelligenceService()
+            
+            # Extract domain from headers or path
+            domain = None
+            if headers and "host" in headers:
+                domain = headers["host"].split(":")[0]
+            
+            # Extract URL from request
+            url = f"http://{domain}{request_path}" if domain else request_path
+            
+            # Get comprehensive threat analysis
+            threat_analysis = await ti_service.comprehensive_threat_analysis(
+                method=request_method,
+                url=url,
+                path=request_path,
+                headers=headers or {},
+                body=body,
+                query_params=None,
+                client_ip=source_ip
+            )
+            
+            return {
+                "threat_score": threat_analysis["overall_threat_score"] / 100.0,  # Normalize to 0-1
+                "threat_type": self._validate_threat_type("suspicious" if threat_analysis.get("overall_threat_score", 0) > 50 else "safe"),
+                "findings": threat_analysis.get("recommendations", []),
+                "should_block": threat_analysis.get("overall_threat_score", 0) >= 75,
+                "analysis_type": "threat_intelligence",
+                "threat_indicators": threat_analysis.get("threat_indicators", []),
+                "confidence": 0.5  # Default confidence
+            }
+            
+        except Exception as e:
+            print(f"[ERROR] Threat intelligence analysis failed: {str(e)}")
+            return {
+                "threat_score": 0.0,
+                "threat_type": "safe",
+                "findings": ["Threat intelligence analysis failed"],
+                "should_block": False,
+                "analysis_type": "threat_intelligence",
+                "error": str(e)
+            }
+    
+    def _format_request_content(
+        self,
+        method: str,
+        path: str,
+        headers: Optional[Dict[str, str]] = None,
+        body: Optional[Dict[str, Any]] = None,
+        user_agent: Optional[str] = None
+    ) -> str:
+        """Format request content for YARA analysis."""
+        content_parts = [
+            f"{method} {path}",
+            f"User-Agent: {user_agent}" if user_agent else "",
+        ]
+        
+        if headers:
+            for key, value in headers.items():
+                content_parts.append(f"{key}: {value}")
+        
+        if body:
+            content_parts.append(str(body))
+        
+        return "\n".join(content_parts)
+    
+    def _combine_analysis_results(
+        self,
+        static_analysis: Dict[str, Any],
+        threat_intel_analysis: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Combine static and threat intelligence analysis results."""
+        # Take the higher threat score (both should already be normalized 0-1)
+        combined_threat_score = max(
+            static_analysis["threat_score"],
+            threat_intel_analysis["threat_score"]
+        )
+        
+        # Combine findings
+        combined_findings = static_analysis["findings"] + threat_intel_analysis["findings"]
+        
+        # Determine threat type
+        if threat_intel_analysis["threat_score"] > static_analysis["threat_score"]:
+            threat_type = threat_intel_analysis["threat_type"]
+        else:
+            threat_type = static_analysis["threat_type"]
+        
+        # Determine if should block (use normalized score)
+        should_block = combined_threat_score >= 0.5  # Changed from 0.75 to 0.5
+        
+        return {
+            "threat_score": combined_threat_score,
+            "threat_type": self._validate_threat_type(threat_type),
+            "findings": combined_findings,
+            "should_block": should_block,
+            "analysis_methods": ["static", "threat_intelligence"],
+            "static_analysis": static_analysis,
+            "threat_intelligence_analysis": threat_intel_analysis,
+            "confidence": threat_intel_analysis.get("confidence", 0.0),
+            "recommendations": threat_intel_analysis.get("findings", [])
         }
 
     def _create_detailed_threat_analysis(
@@ -903,11 +1182,61 @@ class IncidentService:
 
         return {
             "threat_score": min(self.threat_score, 100) / 100.0,
-            "threat_type": self._determine_primary_threat(threat_types, self.threat_score / 100.0),
+            "threat_type": self._validate_threat_type(self._determine_primary_threat(threat_types, self.threat_score / 100.0)),
             "findings": findings,
             "pattern_matches": pattern_matches,
             "threat_types": threat_types
         }
+
+    def _validate_threat_type(self, threat_type: str) -> str:
+        """Validate and normalize threat type to ensure it matches the ThreatType enum.
+        
+        Args:
+            threat_type: Raw threat type string
+            
+        Returns:
+            Validated threat type that matches the enum
+        """
+        # Valid threat types from the enum
+        valid_types = {
+            "sql_injection", "xss", "command_injection", "path_traversal", 
+            "nosql_injection", "safe", "suspicious", "benign", "deserialization",
+            "graphql_attacks", "jwt_attacks", "lfi", "modern_cmdi", 
+            "modern_file_attacks", "modern_sqli", "modern_ssrf", "modern_xss",
+            "open_redirect", "prototype_pollution", "sqli", "ssrf", 
+            "template_injection", "xxe_injection"
+        }
+        
+        # Normalize the threat type
+        normalized = threat_type.lower().replace(" ", "_").replace("-", "_")
+        
+        # Map common variations to valid types
+        type_mapping = {
+            "unknown": "suspicious",
+            "unauthorized_access": "suspicious", 
+            "malware": "suspicious",
+            "phishing": "suspicious",
+            "ddos": "suspicious",
+            "brute_force": "suspicious",
+            "injection": "sql_injection",  # Default to SQL injection for generic injection
+            "script_injection": "xss",
+            "code_injection": "command_injection",
+            "file_inclusion": "lfi",
+            "directory_traversal": "path_traversal",
+            "sql": "sql_injection",
+            "nosql": "nosql_injection"
+        }
+        
+        # Check if it's a valid type
+        if normalized in valid_types:
+            return normalized
+        
+        # Check if it can be mapped
+        if normalized in type_mapping:
+            return type_mapping[normalized]
+        
+        # Default to suspicious for unknown types
+        return "suspicious"
 
     def _perform_ml_analysis(
         self,
@@ -936,10 +1265,13 @@ class IncidentService:
         # Get ML predictions
         ml_result = self.model_loader.detect_attack(formatted_request)
         
+        # Validate and normalize the threat type
+        validated_threat_type = self._validate_threat_type(ml_result["final_label"])
+        
         return {
             "threat_score": ml_result["confidence"],
-            "threat_type": ml_result["final_label"],
-            "findings": [f"ML model detected {ml_result['final_label']} with confidence {ml_result['confidence']:.2f}"],
+            "threat_type": validated_threat_type,
+            "findings": [f"ML model detected {validated_threat_type} with confidence {ml_result['confidence']:.2f}"],
             "ml_scores": {
                 "binary": ml_result["binary_score"],
                 "multi": ml_result["multi_scores"],
@@ -988,38 +1320,41 @@ class IncidentService:
 
     def _combine_analysis_results(
         self,
-        static_result: Dict[str, Any],
-        ml_result: Dict[str, Any]
+        static_analysis_result: Dict[str, Any],
+        ml_analysis_result: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Combine results from static and ML analysis."""
         # If static analysis found a clear threat, use its results
-        if static_result["threat_score"] >= 0.75:
-            return static_result
+        if static_analysis_result["threat_score"] >= 0.75:
+            return static_analysis_result
             
         # If ML analysis found a clear threat, use its results
-        if ml_result["threat_score"] >= 0.75:
-            return ml_result
+        if ml_analysis_result["threat_score"] >= 0.75:
+            return ml_analysis_result
             
         # Combine findings and take the higher threat score
-        combined_findings = static_result["findings"] + ml_result["findings"]
+        combined_findings = static_analysis_result["findings"] + ml_analysis_result["findings"]
         combined_threat_score = max(
-            static_result["threat_score"],
-            ml_result["threat_score"]
+            static_analysis_result["threat_score"],
+            ml_analysis_result["threat_score"]
         )
         
         # Determine final threat type
         if combined_threat_score >= 0.5:
-            threat_type = ml_result["threat_type"] if ml_result["threat_score"] > static_result["threat_score"] else static_result["threat_type"]
+            threat_type = ml_analysis_result["threat_type"] if ml_analysis_result["threat_score"] > static_analysis_result["threat_score"] else static_analysis_result["threat_type"]
         else:
             threat_type = "safe"
             
         return {
             "threat_score": combined_threat_score,
-            "threat_type": threat_type,
+            "threat_type": self._validate_threat_type(threat_type),
             "findings": combined_findings,
-            "pattern_matches": static_result.get("pattern_matches", {}),
-            "ml_scores": ml_result.get("ml_scores", {}),
-            "threat_types": static_result.get("threat_types", set())
+            "should_block": combined_threat_score >= 0.75,
+            "analysis_methods": ["static", "ML"],
+            "static_analysis": static_analysis_result,
+            "ml_analysis": ml_analysis_result,
+            "confidence": ml_analysis_result.get("confidence", 0.0),
+            "recommendations": ml_analysis_result.get("findings", [])
         }
 
     async def _create_analysis_result(

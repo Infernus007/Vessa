@@ -115,7 +115,7 @@ class MaliciousRequest(Base):
     timestamp = Column(DateTime, default=datetime.utcnow)
     is_blocked = Column(Boolean, default=False)
     incident_id = Column(String(36), ForeignKey('incident.id', ondelete='CASCADE'), nullable=True)
-    api_key_id = Column(String(36), ForeignKey('api_key.id', ondelete='CASCADE'), nullable=False)  # Link to API key
+    api_key_id = Column(String(36), ForeignKey('api_key.id', ondelete='CASCADE'), nullable=True)  # Link to API key
     threat_details = Column(JSON, nullable=True)  # Detailed threat analysis information
 
     # Relationships

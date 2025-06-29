@@ -82,7 +82,7 @@ def setup():
         engine = create_engine(get_database_url())
         
         # Drop existing tables if any
-        with engine.connect() as conn:
+        with engine.begin() as conn:
             # Drop tables in correct order (children first, then parents)
             conn.execute(text("SET FOREIGN_KEY_CHECKS = 0"))
             conn.execute(text("DROP TABLE IF EXISTS malicious_request"))
@@ -94,7 +94,6 @@ def setup():
             conn.execute(text("DROP TABLE IF EXISTS user_profile"))
             conn.execute(text("DROP TABLE IF EXISTS user"))
             conn.execute(text("SET FOREIGN_KEY_CHECKS = 1"))
-            conn.commit()
         
         # Create all tables
         Base.metadata.create_all(bind=engine)
