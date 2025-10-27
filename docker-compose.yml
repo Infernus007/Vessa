@@ -11,30 +11,71 @@ services:
       - ./firewall-app:/app
       - ./absolution:/app/absolution
     environment:
-      - FLASK_ENV=development
-      - FLASK_APP=main.py
       - PYTHONPATH=/app
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+      - ENVIRONMENT=development
+      - DEBUG=true
+      - HOST=0.0.0.0
+      - PORT=8000
+      - DB_USER=vessa
+      - DB_PASSWORD=vessa_dev_password
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_NAME=vessa
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET_KEY=dev_secret_key_change_in_production
+    command: poetry run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     networks:
       - vessa-network
+    depends_on:
+      - db
+      - redis
 
   frontend:
     build:
-      context: ./www
-      dockerfile: Dockerfile
+      context: ./www/vite-project
+      dockerfile: ../Dockerfile
     ports:
-      - "3000:3000"
+      - "5173:5173"
     volumes:
-      - ./www:/app
+      - ./www/vite-project:/app
       - /app/node_modules
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
-    command: npm run dev
+      - VITE_API_BASE_URL=http://localhost:8000
+      - VITE_WS_BASE_URL=ws://localhost:8000
+    command: npm run dev -- --host 0.0.0.0
     networks:
       - vessa-network
     depends_on:
       - backend
 
+  db:
+    image: mysql:8.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=root_password
+      - MYSQL_DATABASE=vessa
+      - MYSQL_USER=vessa
+      - MYSQL_PASSWORD=vessa_dev_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - vessa-network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - vessa-network
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+
 networks:
   vessa-network:
-    driver: bridge 
+    driver: bridge
+
+volumes:
+  mysql_data:
+  redis_data: 

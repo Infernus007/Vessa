@@ -26,7 +26,7 @@ export function SDKDocumentation() {
           <TabsTrigger value="javascript">JavaScript SDK</TabsTrigger>
           <TabsTrigger value="python">Python SDK</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="javascript" className="space-y-4">
           <Card>
             <CardHeader>
@@ -42,7 +42,7 @@ export function SDKDocumentation() {
                   <pre className="text-sm"><code>npm install vessa-sdk</code></pre>
                 </div>
               </div>
-              
+
               <div>
                 <h3 className="text-lg font-semibold">Quick Start</h3>
                 <div className="bg-muted p-4 rounded-md mt-2">
@@ -52,74 +52,97 @@ export function SDKDocumentation() {
 // Initialize the client with your API key
 const client = new VessaClient({
   apiKey: 'your-api-key',
+  baseUrl: 'https://api.vessa.com' // Optional, defaults to production
 });
 
-// Forward requests to the VESSA API
-async function reportIncident() {
+// Analyze a request for threats
+async function analyzeRequest(requestData) {
   try {
-    // Simply forward the request to the API endpoint
-    const response = await client.request('POST', '/api/v1/incidents', {
-      // Raw data to be sent to the backend
-      "event_data": {
-        "source_ip": "192.168.1.1",
-        "timestamp": "2023-07-15T14:22:31Z",
-        "request_path": "/admin",
-        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-        "headers": {
-          "authorization": "Bearer ***",
-          "content-type": "application/json"
-        },
-        "payload": "{\"action\":\"get_users\"}"
-      }
+    const analysis = await client.analyzeRequest({
+      client_ip: requestData.ip,
+      request_path: requestData.path,
+      request_method: requestData.method,
+      request_headers: requestData.headers,
+      request_body: requestData.body,
+      user_agent: requestData.userAgent
     });
     
-    console.log('Request sent, response:', response);
+    console.log('Threat Score:', analysis.threat_score);
+    console.log('Threat Type:', analysis.threat_type);
+    console.log('Should Block:', analysis.should_block);
+    console.log('Findings:', analysis.findings);
+    
+    return analysis;
   } catch (error) {
-    console.error('Failed to send request:', error);
+    console.error('Analysis failed:', error);
+    throw error;
   }
 }
 
-// Get all incidents
-async function getIncidents() {
-  try {
-    // Simply forward the request to the API endpoint with query parameters
-    const result = await client.request('GET', '/api/v1/incidents', null, {
-      page: 1,
-      page_size: 20
-    });
-    console.log(\`Found \${result.total} incidents, showing \${result.items.length}\`);
-  } catch (error) {
-    console.error('Failed to fetch incidents:', error);
-  }
+// Example: Analyze a suspicious login attempt
+const suspiciousRequest = {
+  ip: '185.220.101.1',
+  path: '/api/login',
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+  },
+  body: '{"username": "admin", "password": "admin123"}',
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+};
+
+const result = await analyzeRequest(suspiciousRequest);
+if (result.should_block) {
+  console.log('🚨 BLOCKING REQUEST - High threat detected!');
+  // Block the request in your application
 }`}</code>
                   </pre>
                 </div>
               </div>
-              
+
               <div>
                 <h3 className="text-lg font-semibold">Error Handling</h3>
                 <div className="bg-muted p-4 rounded-md mt-2">
                   <pre className="text-sm overflow-x-auto">
                     <code>{`try {
-  await client.request('POST', '/api/v1/incidents', {
-    title: 'Test incident'
-    // Missing required fields will cause an error
+  const analysis = await client.analyzeRequest({
+    client_ip: '192.168.1.1',
+    request_path: '/api/login',
+    request_method: 'POST',
+    request_headers: { 'Content-Type': 'application/json' },
+    request_body: '{"username": "admin"}',
+    user_agent: 'Mozilla/5.0'
   });
+  
+  // Handle the analysis result
+  if (analysis.threat_score > 0.8) {
+    console.log('🚨 High threat detected - blocking request');
+    return { blocked: true, reason: 'High threat score' };
+  } else if (analysis.threat_score > 0.5) {
+    console.log('⚠️ Medium threat detected - logging for review');
+    return { blocked: false, logged: true };
+  } else {
+    console.log('✅ Request appears safe');
+    return { blocked: false, logged: false };
+  }
 } catch (error) {
   if (error.status === 400) {
-    console.error('Validation error:', error.message);
+    console.error('Invalid request data:', error.message);
   } else if (error.status === 401) {
-    console.error('Authentication error. Check your API key.');
-  } else if (error.status === 403) {
-    console.error('Permission denied. Your plan may not allow this operation.');
+    console.error('Authentication failed. Check your API key.');
+  } else if (error.status === 429) {
+    console.error('Rate limit exceeded. Please wait before retrying.');
   } else {
-    console.error('An unexpected error occurred:', error);
+    console.error('Analysis failed:', error.message);
+    // Fallback: allow request but log the error
+    return { blocked: false, error: true };
   }
 }`}</code>
                   </pre>
                 </div>
               </div>
-              
+
               <div className="flex justify-end">
                 <Button className="flex items-center gap-2" onClick={() => window.open('/sdk/vessa-sdk-latest.zip', '_blank')}>
                   <Download className="h-4 w-4" />
@@ -129,7 +152,7 @@ async function getIncidents() {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         <TabsContent value="python" className="space-y-4">
           <Card>
             <CardHeader>
@@ -145,7 +168,7 @@ async function getIncidents() {
                   <pre className="text-sm"><code>pip install vessa-sdk</code></pre>
                 </div>
               </div>
-              
+
               <div>
                 <h3 className="text-lg font-semibold">Quick Start</h3>
                 <div className="bg-muted p-4 rounded-md mt-2">
@@ -154,81 +177,97 @@ async function getIncidents() {
 
 # Initialize the client with your API key
 client = VessaClient(
-    api_key='your-api-key'
+    api_key='your-api-key',
+    base_url='https://api.vessa.com'  # Optional, defaults to production
 )
 
-# Report a new incident
-def report_incident():
+# Analyze a request for threats
+def analyze_request(request_data):
     try:
-        # Simply forward the request to the API endpoint
-        response = client.request(
-            method="POST",
-            path="/api/v1/incidents",
-            data={
-                # Raw data to be sent to the backend
-                "event_data": {
-                    "source_ip": "192.168.1.1",
-                    "timestamp": "2023-07-15T14:22:31Z",
-                    "request_path": "/admin",
-                    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-                    "headers": {
-                        "authorization": "Bearer ***",
-                        "content-type": "application/json"
-                    },
-                    "payload": "{\"action\":\"get_users\"}"
-                }
-            }
+        analysis = client.analyze_request(
+            client_ip=request_data['ip'],
+            request_path=request_data['path'],
+            request_method=request_data['method'],
+            request_headers=request_data['headers'],
+            request_body=request_data['body'],
+            user_agent=request_data['user_agent']
         )
         
-        print(f"Request sent, response: {response}")
+        print(f"Threat Score: {analysis['threat_score']}")
+        print(f"Threat Type: {analysis['threat_type']}")
+        print(f"Should Block: {analysis['should_block']}")
+        print(f"Findings: {analysis['findings']}")
+        
+        return analysis
     except Exception as e:
-        print(f"Failed to send request: {e}")
+        print(f"Analysis failed: {e}")
+        raise
 
-# Get all incidents
-def get_incidents():
-    try:
-        # Simply forward the request to the API endpoint with query parameters
-        result = client.request(
-            method="GET",
-            path="/api/v1/incidents",
-            params={"page": 1, "page_size": 20}
-        )
-        print(f"Found {result['total']} incidents, showing {len(result['items'])}")
-    except Exception as e:
-        print(f"Failed to fetch incidents: {e}")
-`}</code>
+# Example: Analyze a suspicious SQL injection attempt
+suspicious_request = {
+    'ip': '192.168.1.100',
+    'path': '/api/users?search=admin OR 1=1',
+    'method': 'GET',
+    'headers': {
+        'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+    },
+    'body': '',
+    'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+}
+
+result = analyze_request(suspicious_request)
+if result['should_block']:
+    print("🚨 BLOCKING REQUEST - High threat detected!")
+    # Block the request in your application`}</code>
                   </pre>
                 </div>
               </div>
-              
+
               <div>
                 <h3 className="text-lg font-semibold">Error Handling</h3>
                 <div className="bg-muted p-4 rounded-md mt-2">
                   <pre className="text-sm overflow-x-auto">
                     <code>{`try:
-    client.request(
-        method="POST",
-        path="/api/v1/incidents",
-        data={"title": "Test incident"}
-        # Missing required fields will cause an error
+    analysis = client.analyze_request(
+        client_ip='192.168.1.1',
+        request_path='/api/login',
+        request_method='POST',
+        request_headers={'Content-Type': 'application/json'},
+        request_body='{"username": "admin"}',
+        user_agent='Mozilla/5.0'
     )
+    
+    # Handle the analysis result
+    if analysis['threat_score'] > 0.8:
+        print("🚨 High threat detected - blocking request")
+        return {"blocked": True, "reason": "High threat score"}
+    elif analysis['threat_score'] > 0.5:
+        print("⚠️ Medium threat detected - logging for review")
+        return {"blocked": False, "logged": True}
+    else:
+        print("✅ Request appears safe")
+        return {"blocked": False, "logged": False}
+        
 except Exception as e:
     if hasattr(e, 'status_code'):
         if e.status_code == 400:
-            print(f"Validation error: {e}")
+            print(f"Invalid request data: {e}")
         elif e.status_code == 401:
-            print("Authentication error. Check your API key.")
-        elif e.status_code == 403:
-            print("Permission denied. Your plan may not allow this operation.")
+            print("Authentication failed. Check your API key.")
+        elif e.status_code == 429:
+            print("Rate limit exceeded. Please wait before retrying.")
         else:
-            print(f"An unexpected error occurred: {e}")
+            print(f"Analysis failed: {e}")
     else:
         print(f"Client error: {e}")
-`}</code>
+    
+    # Fallback: allow request but log the error
+    return {"blocked": False, "error": True}`}</code>
                   </pre>
                 </div>
               </div>
-              
+
               <div className="flex justify-end">
                 <Button className="flex items-center gap-2" onClick={() => window.open('/sdk/vessa-python-sdk-latest.zip', '_blank')}>
                   <Download className="h-4 w-4" />

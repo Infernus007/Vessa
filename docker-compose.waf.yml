@@ -1,0 +1,63 @@
+# Docker Compose for VESSA WAF in Reverse Proxy Mode
+#
+# This sets up the WAF to protect your application without code changes.
+#
+# Usage:
+#   docker-compose -f docker-compose.waf.yml up
+
+version: '3.8'
+
+services:
+  # Your application (example)
+  backend:
+    image: your-app:latest
+    # or build: ./your-app
+    expose:
+      - "3000"
+    environment:
+      - NODE_ENV=production
+    networks:
+      - internal
+  
+  # VESSA WAF (protects your app)
+  waf:
+    build:
+      context: ./firewall-app
+      dockerfile: Dockerfile.waf
+    ports:
+      - "8080:8080"  # Expose WAF to internet
+    environment:
+      - BACKEND_URL=http://backend:3000
+      - WAF_MODE=block
+      - WAF_ENABLED=true
+    depends_on:
+      - backend
+    networks:
+      - internal
+      - external
+    restart: unless-stopped
+  
+  # Optional: Redis for rate limiting and caching
+  redis:
+    image: redis:7-alpine
+    expose:
+      - "6379"
+    networks:
+      - internal
+    restart: unless-stopped
+
+networks:
+  internal:
+    driver: bridge
+  external:
+    driver: bridge
+
+# Architecture:
+# Internet → WAF (8080) → Backend (3000)
+#
+# Benefits:
+# - Zero code changes to your app
+# - Drop-in security layer
+# - Easy to enable/disable
+# - Can be added to existing deployments
+

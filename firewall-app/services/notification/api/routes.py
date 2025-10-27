@@ -153,35 +153,85 @@ async def mark_notification_read(
 @router.websocket("/ws")
 async def notification_websocket(
     websocket: WebSocket,
-    token: str,
     db: Session = Depends(get_db)
 ):
-    """WebSocket endpoint for real-time notifications."""
+    """WebSocket endpoint for real-time notifications.
+    
+    Authentication Flow:
+    1. Client sends auth token as first message after connection
+    2. Server validates token and either accepts or rejects
+    3. Normal communication proceeds
+    
+    This approach keeps tokens out of URLs and server logs.
+    """
     try:
-        # Get auth service
-        auth_service = AuthService(db)
-        
-        # Remove 'Bearer ' prefix if present
-        if token.startswith('Bearer '):
-            token = token[7:]
-        
-        print(f"[DEBUG] Authenticating WebSocket connection with token")
-        
-        try:
-            # Verify token and get user directly
-            user = auth_service.get_current_active_user(token)
-            if not user:
-                print("[ERROR] Invalid authentication token")
-                await websocket.close(code=4001, reason="Invalid authentication token")
-                return
-        except Exception as auth_error:
-            print(f"[ERROR] Authentication failed: {str(auth_error)}")
-            await websocket.close(code=4001, reason=str(auth_error))
-            return
-            
-        # Accept connection
+        # Accept connection first
         await websocket.accept()
-        print(f"[DEBUG] WebSocket connection accepted for user {user.email}")
+        print(f"[DEBUG] WebSocket connection accepted, waiting for authentication")
+        
+        # Wait for authentication message (with timeout)
+        try:
+            # First message must be authentication token
+            auth_message = await websocket.receive_text()
+            
+            # Parse authentication message
+            # Expected format: {"type": "auth", "token": "..."}
+            import json
+            auth_data = json.loads(auth_message)
+            
+            if auth_data.get("type") != "auth":
+                await websocket.send_json({
+                    "type": "error",
+                    "message": "First message must be authentication"
+                })
+                await websocket.close(code=4001, reason="Authentication required")
+                return
+            
+            token = auth_data.get("token", "")
+            
+            # Remove 'Bearer ' prefix if present
+            if token.startswith('Bearer '):
+                token = token[7:]
+            
+            # Get auth service and verify token
+            auth_service = AuthService(db)
+            
+            try:
+                user = auth_service.get_current_active_user(token)
+                if not user:
+                    await websocket.send_json({
+                        "type": "error",
+                        "message": "Invalid authentication token"
+                    })
+                    await websocket.close(code=4001, reason="Invalid authentication token")
+                    return
+            except Exception as auth_error:
+                print(f"[ERROR] Authentication failed: {str(auth_error)}")
+                await websocket.send_json({
+                    "type": "error",
+                    "message": "Authentication failed"
+                })
+                await websocket.close(code=4001, reason=str(auth_error))
+                return
+            
+            # Send authentication success
+            await websocket.send_json({
+                "type": "auth_success",
+                "message": "Authenticated successfully"
+            })
+            print(f"[DEBUG] WebSocket authenticated for user {user.email}")
+            
+        except json.JSONDecodeError:
+            await websocket.send_json({
+                "type": "error",
+                "message": "Invalid authentication message format"
+            })
+            await websocket.close(code=4002, reason="Invalid message format")
+            return
+        except Exception as e:
+            print(f"[ERROR] Authentication error: {str(e)}")
+            await websocket.close(code=4003, reason="Authentication error")
+            return
         
         # Ensure WebSocket notification preference exists
         service = NotificationService(db)

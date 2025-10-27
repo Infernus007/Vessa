@@ -1,5 +1,8 @@
 import { TrendingUp } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, LabelList, XAxis } from "recharts"
+import { useQuery } from "@tanstack/react-query"
+import { analyticsAPI } from "@/lib/api/analytics-api"
+import { Skeleton } from "@/components/ui/skeleton"
 
 import {
     Card,
@@ -16,15 +19,6 @@ import {
     ChartTooltipContent,
 } from "@/components/ui/chart"
 
-const chartData = [
-    { month: "January", total: 1860 },
-    { month: "February", total: 3050 },
-    { month: "March", total: 2370 },
-    { month: "April", total: 2730 },
-    { month: "May", total: 2090 },
-    { month: "June", total: 2140 },
-]
-
 const chartConfig = {
     total: {
         label: "Total Incidents",
@@ -32,29 +26,62 @@ const chartConfig = {
     },
 } satisfies ChartConfig
 
-export function Overview() {
+interface OverviewProps {
+    timeRange?: string;
+}
+
+export function Overview({ timeRange = '24h' }: OverviewProps) {
+    const { data: timeSeriesData, isLoading } = useQuery({
+        queryKey: ['analytics', 'time-series', 'threats', '1h', timeRange],
+        queryFn: () => analyticsAPI.getTimeSeries('threats', '1h', timeRange as any)
+    });
+
+    if (isLoading) {
+        return (
+            <div className="h-[300px] w-full flex items-center justify-center">
+                <Skeleton className="h-[200px] w-full" />
+            </div>
+        );
+    }
+
+    if (!timeSeriesData?.data || timeSeriesData.data.length === 0) {
+        return (
+            <div className="h-[300px] w-full flex flex-col items-center justify-center text-muted-foreground">
+                <TrendingUp className="h-12 w-12 mb-4" />
+                <p>No incident data available</p>
+                <p className="text-sm">Data will appear here when incidents are detected</p>
+            </div>
+        );
+    }
+
     return (
         <ChartContainer config={chartConfig}>
             <BarChart
                 accessibilityLayer
-                data={chartData}
+                data={timeSeriesData.data}
                 margin={{
                     top: 20,
                 }}
             >
                 <CartesianGrid vertical={false} />
                 <XAxis
-                    dataKey="month"
+                    dataKey="timestamp"
                     tickLine={false}
                     tickMargin={10}
                     axisLine={false}
-                    tickFormatter={(value) => value.slice(0, 3)}
+                    tickFormatter={(value) => {
+                        const date = new Date(value);
+                        return date.toLocaleTimeString('en-US', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                    }}
                 />
                 <ChartTooltip
                     cursor={false}
                     content={<ChartTooltipContent hideLabel />}
                 />
-                <Bar dataKey="total" fill="var(--theme-primary)" radius={8}>
+                <Bar dataKey="value" fill="var(--theme-primary)" radius={8}>
                     <LabelList
                         position="top"
                         offset={12}

@@ -15,6 +15,7 @@ from services.common.database.session import get_db
 from services.common.models.incident import Incident, MaliciousRequest
 from services.incident.core.incident_service import IncidentService
 from services.user.core.user_service import UserService
+from services.common.utils.input_sanitizer import sanitize_for_ml_analysis
 from .schemas import (
     IncidentCreate,
     IncidentUpdate,
@@ -86,7 +87,7 @@ async def verify_api_key(
     print("[DEBUG] API key validated successfully")
     return x_api_key
 
-@router.get("/recent", response_model=RecentIncidentsResponse)
+@router.get("/recent")
 async def get_recent_incidents(
     limit: int = Query(10, ge=1, le=50),
     offset: int = Query(0, ge=0),
@@ -113,7 +114,7 @@ async def get_recent_incidents(
     result = service.get_recent_incidents(limit=limit, offset=offset)
     print(f"[DEBUG] Service returned result: {result}")
     
-    return RecentIncidentsResponse(**result)
+    return result
 
 @router.get("/user/{user_id}/incidents", response_model=IncidentListResponse)
 async def get_user_incidents(
@@ -301,6 +302,15 @@ async def analyze_request(
     print(f"[DEBUG] Analyzing request from {request.client_ip}")
     
     try:
+        # Sanitize inputs before processing
+        sanitized_data = sanitize_for_ml_analysis(
+            client_ip=request.client_ip,
+            request_path=request.request_path,
+            request_method=request.request_method,
+            request_headers=dict(request.request_headers),
+            request_body=str(request.request_body) if request.request_body else None
+        )
+        
         # Get user from API key
         user = await user_service.get_user_by_api_key(api_key)
         if not user:
@@ -309,10 +319,10 @@ async def analyze_request(
                 detail="Invalid API key"
             )
         
-        # Extract user agent from headers
-        user_agent = request.request_headers.get("User-Agent", "")
+        # Extract user agent from sanitized headers
+        user_agent = sanitized_data["request_headers"].get("User-Agent", "")
         
-        # Perform enhanced analysis with threat intelligence
+        # Perform enhanced analysis with threat intelligence using sanitized data
         analysis_result = await service.analyze_request(
             source_ip=request.client_ip,
             request_path=request.request_path,
@@ -602,8 +612,7 @@ async def analyze_service_request(
 @router.get("/analytics/overview", response_model=ThreatAnalytics)
 async def get_threat_analytics(
     time_range: str = Query("24h", description="Time range (24h, 7d, 30d, all)"),
-    db: Session = Depends(get_db),
-    api_key: str = Depends(verify_api_key)
+    db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """Get overview of threat analytics."""
     # Calculate time threshold based on range

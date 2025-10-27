@@ -53,25 +53,25 @@ export function AnalyticsReports({ timeRange = '24h' }: AnalyticsReportsProps) {
     });
 
     // Transform time series data
-    const hasTimeSeriesData = timeSeriesData?.data && timeSeriesData.data.length > 0 && 
+    const hasTimeSeriesData = timeSeriesData?.data && timeSeriesData.data.length > 0 &&
         timeSeriesData.data.some(point => point.value > 0);
 
     // Transform severity data
-    const severityDistributionData = severityData ? 
+    const severityDistributionData = severityData ?
         Object.entries(severityData.severity_distribution || {}).map(([name, value]) => ({
             name,
             value: typeof value === 'number' ? value : 0
         })) : [];
-    const hasSeverityData = severityDistributionData.length > 0 && 
+    const hasSeverityData = severityDistributionData.length > 0 &&
         severityDistributionData.some(item => item.value > 0);
 
     // Transform attack data
-    const attackDistributionData = attackData ? 
+    const attackDistributionData = attackData ?
         Object.entries(attackData.attack_vectors || {}).map(([name, value]) => ({
             name,
             value: typeof value === 'number' ? value : 0
         })) : [];
-    const hasAttackData = attackDistributionData.length > 0 && 
+    const hasAttackData = attackDistributionData.length > 0 &&
         attackDistributionData.some(item => item.value > 0);
 
     return (
@@ -84,13 +84,13 @@ export function AnalyticsReports({ timeRange = '24h' }: AnalyticsReportsProps) {
                             <Activity className="h-4 w-4 text-muted-foreground" />
                             <CardTitle>Threat Activity</CardTitle>
                         </div>
-                        <CardDescription>Incident activity over the last 24 hours</CardDescription>
+                        <CardDescription>Incident activity over time</CardDescription>
                     </CardHeader>
                     <CardContent>
                         {timeSeriesLoading ? (
                             <ChartSkeleton />
                         ) : !hasTimeSeriesData ? (
-                            <EmptyChart 
+                            <EmptyChart
                                 title="No activity data"
                                 description="There is no activity data available for this time period."
                                 icon={<Activity className="h-12 w-12 text-muted-foreground/50" />}
@@ -123,7 +123,7 @@ export function AnalyticsReports({ timeRange = '24h' }: AnalyticsReportsProps) {
                         {severityLoading ? (
                             <ChartSkeleton />
                         ) : !hasSeverityData ? (
-                            <EmptyChart 
+                            <EmptyChart
                                 title="No severity data"
                                 description="There is no severity distribution data available for this time period."
                                 icon={<AlertTriangle className="h-12 w-12 text-muted-foreground/50" />}
@@ -155,47 +155,46 @@ export function AnalyticsReports({ timeRange = '24h' }: AnalyticsReportsProps) {
                 </Card>
             </div>
 
-            {/* System Impact and Geo Distribution */}
+            {/* Affected Assets and Incident Status */}
             <div className="grid gap-4 md:grid-cols-2">
                 <Card>
                     <CardHeader>
                         <div className="flex items-center space-x-2">
                             <Server className="h-4 w-4 text-muted-foreground" />
-                            <CardTitle>System Impact</CardTitle>
+                            <CardTitle>Affected Assets</CardTitle>
                         </div>
-                        <CardDescription>Impact analysis across systems in the last 24 hours</CardDescription>
+                        <CardDescription>Most frequently affected systems and assets</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {systemLoading ? (
+                        {attackLoading ? (
                             <ChartSkeleton />
-                        ) : !systemImpactData?.data?.length ? (
-                            <EmptyChart 
-                                title="No system impact data"
-                                description="There is no system impact data available for this time period."
+                        ) : !attackData?.input_points || Object.keys(attackData.input_points).length === 0 ? (
+                            <EmptyChart
+                                title="No asset data"
+                                description="There is no affected asset data available for this time period."
                                 icon={<Server className="h-12 w-12 text-muted-foreground/50" />}
                             />
                         ) : (
                             <div className="h-[300px]">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={systemImpactData.data} margin={{ top: 20 }}>
+                                    <BarChart
+                                        data={Object.entries(attackData.input_points).map(([name, value]) => ({ name, value }))}
+                                        margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                                        layout="horizontal"
+                                    >
                                         <CartesianGrid strokeDasharray="3 3" />
-                                        <XAxis dataKey="system_name" />
+                                        <XAxis
+                                            dataKey="name"
+                                            angle={-45}
+                                            textAnchor="end"
+                                            height={100}
+                                            interval={0}
+                                        />
                                         <YAxis />
                                         <Tooltip />
-                                        <Legend verticalAlign="top" height={36} />
-                                        <Bar name="Impact Score" dataKey="impact_score" fill="var(--primary)" />
+                                        <Bar name="Incidents" dataKey="value" fill="#3b82f6" />
                                     </BarChart>
                                 </ResponsiveContainer>
-                                <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-                                    <div className="flex flex-col space-y-1">
-                                        <span className="text-muted-foreground">Total Systems</span>
-                                        <span className="text-xl font-bold">{systemImpactData.total_systems}</span>
-                                    </div>
-                                    <div className="flex flex-col space-y-1">
-                                        <span className="text-muted-foreground">High Impact Systems</span>
-                                        <span className="text-xl font-bold text-destructive">{systemImpactData.high_impact_count}</span>
-                                    </div>
-                                </div>
                             </div>
                         )}
                     </CardContent>
@@ -204,42 +203,55 @@ export function AnalyticsReports({ timeRange = '24h' }: AnalyticsReportsProps) {
                 <Card>
                     <CardHeader>
                         <div className="flex items-center space-x-2">
-                            <MapPin className="h-4 w-4 text-muted-foreground" />
-                            <CardTitle>Geographic Distribution</CardTitle>
+                            <Clock className="h-4 w-4 text-muted-foreground" />
+                            <CardTitle>Incident Status</CardTitle>
                         </div>
-                        <CardDescription>Incident distribution by location in the last 24 hours</CardDescription>
+                        <CardDescription>Current status of all incidents</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {geoLoading ? (
+                        {severityLoading ? (
                             <ChartSkeleton />
-                        ) : !geoData?.data?.length ? (
-                            <EmptyChart 
-                                title="No geographic data"
-                                description="There is no geographic distribution data available for this time period."
-                                icon={<MapPin className="h-12 w-12 text-muted-foreground/50" />}
+                        ) : !severityData?.severity_distribution || Object.keys(severityData.severity_distribution).length === 0 ? (
+                            <EmptyChart
+                                title="No status data"
+                                description="There is no incident status data available for this time period."
+                                icon={<Clock className="h-12 w-12 text-muted-foreground/50" />}
                             />
                         ) : (
-                            <div className="space-y-8">
-                                <div className="h-[300px]">
+                            <div className="space-y-6">
+                                <div className="h-[240px]">
                                     <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart data={geoData.data} margin={{ top: 20 }}>
+                                        <BarChart
+                                            data={Object.entries(severityData.severity_distribution).map(([name, value]) => ({
+                                                name: name.charAt(0).toUpperCase() + name.slice(1),
+                                                value
+                                            }))}
+                                            margin={{ top: 20 }}
+                                        >
                                             <CartesianGrid strokeDasharray="3 3" />
-                                            <XAxis dataKey="country" />
+                                            <XAxis dataKey="name" />
                                             <YAxis />
                                             <Tooltip />
-                                            <Legend verticalAlign="top" height={36} />
-                                            <Bar name="Incident Count" dataKey="incident_count" fill="var(--primary)" />
+                                            <Bar name="Count" dataKey="value" fill="#10b981">
+                                                {Object.entries(severityData.severity_distribution).map((_, index) => (
+                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                ))}
+                                            </Bar>
                                         </BarChart>
                                     </ResponsiveContainer>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4 text-sm">
                                     <div className="flex flex-col space-y-1">
-                                        <span className="text-muted-foreground">Total Locations</span>
-                                        <span className="text-xl font-bold">{geoData.total_locations}</span>
+                                        <span className="text-muted-foreground">Total Incidents</span>
+                                        <span className="text-xl font-bold">
+                                            {Object.values(severityData.severity_distribution).reduce((a: number, b) => a + (b as number), 0)}
+                                        </span>
                                     </div>
                                     <div className="flex flex-col space-y-1">
-                                        <span className="text-muted-foreground">High Risk Locations</span>
-                                        <span className="text-xl font-bold text-destructive">{geoData.high_risk_locations}</span>
+                                        <span className="text-muted-foreground">Critical Severity</span>
+                                        <span className="text-xl font-bold text-destructive">
+                                            {severityData.severity_distribution.critical || 0}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -261,7 +273,7 @@ export function AnalyticsReports({ timeRange = '24h' }: AnalyticsReportsProps) {
                     {attackLoading ? (
                         <ChartSkeleton />
                     ) : !hasAttackData ? (
-                        <EmptyChart 
+                        <EmptyChart
                             title="No attack distribution data"
                             description="There is no attack distribution data available for this time period."
                             icon={<Shield className="h-12 w-12 text-muted-foreground/50" />}
@@ -285,12 +297,12 @@ export function AnalyticsReports({ timeRange = '24h' }: AnalyticsReportsProps) {
                                         ))}
                                     </Pie>
                                     <Tooltip formatter={(value, name) => [
-                                        `${value} (${((value as number / attackDistributionData.reduce((a, b) => a + b.value, 0)) * 100).toFixed(0)}%)`, 
+                                        `${value} (${((value as number / attackDistributionData.reduce((a, b) => a + b.value, 0)) * 100).toFixed(0)}%)`,
                                         name
                                     ]} />
-                                    <Legend 
-                                        layout="vertical" 
-                                        verticalAlign="middle" 
+                                    <Legend
+                                        layout="vertical"
+                                        verticalAlign="middle"
                                         align="right"
                                         wrapperStyle={{ paddingLeft: "20px" }}
                                     />

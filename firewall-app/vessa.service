@@ -1,0 +1,62 @@
+[Unit]
+Description=VESSA Firewall Application
+After=network.target mysql.service redis.service
+Wants=mysql.service redis.service
+
+[Service]
+Type=notify
+User=vessa
+Group=vessa
+WorkingDirectory=/opt/vessa/firewall-app
+
+# Environment file (contains all configuration)
+EnvironmentFile=/opt/vessa/firewall-app/.env
+
+# Set umask for file creation
+UMask=0027
+
+# Start Gunicorn with Uvicorn workers
+ExecStart=/opt/vessa/firewall-app/venv/bin/gunicorn \
+    --config /opt/vessa/firewall-app/gunicorn.conf.py \
+    main:app
+
+# Graceful reload
+ExecReload=/bin/kill -s HUP $MAINPID
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=32768
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/vessa/firewall-app/logs
+ReadOnlyPaths=/opt/vessa/firewall-app
+
+# Restart policy
+Restart=always
+RestartSec=5s
+StartLimitInterval=300s
+StartLimitBurst=5
+
+# Timeout settings
+TimeoutStartSec=300s
+TimeoutStopSec=30s
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=vessa-firewall
+
+# Process management
+KillMode=mixed
+KillSignal=SIGTERM
+
+# Watchdog
+WatchdogSec=60s
+
+[Install]
+WantedBy=multi-user.target
+

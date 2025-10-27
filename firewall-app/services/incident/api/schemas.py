@@ -79,6 +79,14 @@ class MaliciousRequestCreate(BaseModel):
     service_version: Optional[str] = Field(None, max_length=50)
     attack_type: Optional[str] = Field(None, max_length=100)  # Type of attack being simulated
 
+class SimpleRequestAnalysis(BaseModel):
+    """Schema for simple request analysis."""
+    client_ip: str = Field(..., max_length=45)
+    request_path: str = Field(..., max_length=1024)
+    request_method: str
+    request_headers: Dict[str, str]
+    request_body: Optional[str] = None
+
 class RawRequestAnalysis(BaseModel):
     """Schema for analyzing raw request data from middleware."""
     method: str
@@ -278,11 +286,21 @@ class RecentIncident(BaseModel):
     """Schema for recent incident items."""
     id: str
     title: str
+    description: str
     status: str
     severity: str
-    timestamp: str
-    is_system_report: bool
-    user: UserInfo
+    detection_source: str
+    affected_assets: List[str]
+    tags: List[str]
+    created_at: str
+    updated_at: str
+    resolved_at: Optional[str]
+    resolution_notes: Optional[str]
+    threat_details: Optional[Dict[str, Any]]
+    reporter_id: str
+    assigned_to: Optional[str]
+    reviewed_at: Optional[str]
+    findings: List[Dict[str, Any]]
 
 class RecentIncidentsResponse(BaseModel):
     """Schema for recent incidents response."""

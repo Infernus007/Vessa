@@ -1,0 +1,72 @@
+# VESSA WAF Configuration Example
+# Copy this file to waf_config.yaml and customize
+
+# WAF Mode
+# - block: Block malicious requests (default)
+# - log: Log only, don't block
+# - challenge: Present CAPTCHA/challenge for suspicious requests
+# - simulate: Dry-run mode for testing
+mode: block
+
+# Enable/disable WAF
+enabled: true
+
+# Threat Score Thresholds (0.0 to 1.0)
+thresholds:
+  block: 0.75        # Block requests with score >= 0.75
+  challenge: 0.50    # Challenge requests with score >= 0.50
+  log: 0.25          # Log requests with score >= 0.25
+
+# Analysis Configuration
+analysis:
+  static_enabled: true      # Enable fast pattern-based analysis
+  ml_enabled: true          # Enable ML-based analysis
+  ml_async: true            # Run ML async (faster, less accurate blocking)
+  threat_intel_enabled: true  # Enable threat intelligence
+  cache_enabled: true       # Cache analysis results
+  cache_ttl: 300            # Cache TTL in seconds (5 minutes)
+
+# Rate Limiting
+rate_limit:
+  enabled: true
+  requests_per_minute: 60
+  requests_per_hour: 1000
+  burst_size: 10
+
+# IP Management
+ip_config:
+  # Whitelist (always allow)
+  whitelist:
+    - 127.0.0.1
+    - ::1
+    # - 10.0.0.0/8  # Private network
+  
+  # Blacklist (always block)
+  blacklist:
+    # - 192.168.1.100  # Malicious IP
+  
+  # Geo-blocking (ISO country codes)
+  geo_block_countries:
+    # - CN  # China
+    # - RU  # Russia
+
+# Excluded Paths (bypass WAF)
+excluded_paths:
+  - /health
+  - /metrics
+  - /api/v1/health
+  - /static
+  - /_next/static  # Next.js static files
+
+# Logging
+log_blocked_requests: true
+log_allowed_requests: false
+detailed_logging: false
+
+# Custom Rules (optional)
+custom_rules: []
+#  - name: "Block admin access"
+#    pattern: "/admin"
+#    action: "block"
+#    enabled: true
+

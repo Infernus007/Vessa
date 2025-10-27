@@ -37,6 +37,9 @@ anyio = "3.6.2"
 absolution = { path = "../absolution" }
 aiohttp = "^3.12.13"
 yara = "^1.7.7"
+python-json-logger = "^4.0.0"
+gunicorn = "^23.0.0"
+pyyaml = "^6.0.1"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

@@ -37,15 +37,27 @@ export function IncidentsPage() {
   const PAGE_SIZE = 20;
   const { toast } = useToast();
   const userId = useAuthStore(state => state.user?.id);
-  
+
   // Fetch incidents
-  const { data: incidentsData, isLoading: isLoadingIncidents } = useQuery<RecentIncidentsResponse>({
+  const { data: incidentsData, isLoading: isLoadingIncidents, error: incidentsError } = useQuery<RecentIncidentsResponse>({
     queryKey: ['incidents', filterPriority, currentPage],
-    queryFn: () => incidentsAPI.getRecentIncidents({
-      limit: PAGE_SIZE,
-      offset: (currentPage - 1) * PAGE_SIZE
-    })
+    queryFn: async () => {
+      console.log('Fetching incidents...');
+      const result = await incidentsAPI.getRecentIncidents({
+        limit: PAGE_SIZE,
+        offset: (currentPage - 1) * PAGE_SIZE
+      });
+      console.log('Incidents fetched:', result);
+      return result;
+    }
   });
+
+  // Debug logging
+  React.useEffect(() => {
+    console.log('incidentsData:', incidentsData);
+    console.log('isLoadingIncidents:', isLoadingIncidents);
+    console.log('incidentsError:', incidentsError);
+  }, [incidentsData, isLoadingIncidents, incidentsError]);
 
   // Fetch analytics
   const { data: analyticsData, isLoading: isLoadingAnalytics } = useQuery<AnalyticsData>({
@@ -57,9 +69,9 @@ export function IncidentsPage() {
   const filteredIncidents = React.useMemo(() => {
     if (!incidentsData?.incidents) return [];
     return incidentsData.incidents.filter((incident) => {
-      const matchesSearch = searchQuery === '' || 
+      const matchesSearch = searchQuery === '' ||
         incident.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        incident.description.toLowerCase().includes(searchQuery.toLowerCase());
+        (incident.description && incident.description.toLowerCase().includes(searchQuery.toLowerCase()));
       return matchesSearch;
     });
   }, [incidentsData?.incidents, searchQuery]);
@@ -90,7 +102,7 @@ export function IncidentsPage() {
     };
 
     const { reported_incidents } = analyticsData;
-    
+
     // Convert severity and status data to arrays for rendering
     const severityData = Object.entries(reported_incidents.by_severity).map(([key, value]) => ({
       severity: key,
@@ -189,6 +201,10 @@ export function IncidentsPage() {
                 Array.from({ length: 5 }).map((_, i) => (
                   <NotificationCardSkeleton key={i} />
                 ))
+              ) : incidentsError ? (
+                <div className="p-8 text-center text-red-500">
+                  Error loading incidents: {incidentsError instanceof Error ? incidentsError.message : 'Unknown error'}
+                </div>
               ) : filteredIncidents.length > 0 ? (
                 filteredIncidents.map((incident) => (
                   <NotificationCard

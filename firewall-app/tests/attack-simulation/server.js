@@ -35,10 +35,21 @@ let authToken = null;
 // Test authentication endpoint and get token
 async function testAuth() {
   try {
+    // Get credentials from environment variables
+    // NEVER hardcode credentials - use environment variables!
+    const username = process.env.TEST_USERNAME || 'test@example.com';
+    const password = process.env.TEST_PASSWORD;
+
+    if (!password) {
+      console.error('❌ TEST_PASSWORD environment variable is required');
+      console.error('   Set it with: export TEST_PASSWORD=your_test_password');
+      return false;
+    }
+
     // Create form data
     const formData = new URLSearchParams();
-    formData.append('username', 'test@vessa.com');
-    formData.append('password', 'Test@123');
+    formData.append('username', username);
+    formData.append('password', password);
     formData.append('grant_type', 'password');
 
     const response = await securityService.post('/auth/token', formData, {
@@ -99,20 +110,20 @@ const getRandomItem = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
 // Valid endpoints and methods for focused rate limit testing
 const validEndpoints = [
-  { 
-    path: '/auth/token', 
-    method: 'POST', 
-    payload: { 
+  {
+    path: '/auth/token',
+    method: 'POST',
+    payload: {
       grant_type: 'password',
-      username: 'test@vessa.com', 
-      password: 'Test@123' 
+      username: 'test@vessa.com',
+      password: 'Test@123'
     },
     skipAuth: true
   },
-  { 
-    path: '/incidents', 
-    method: 'GET', 
-    payload: { 
+  {
+    path: '/incidents',
+    method: 'GET',
+    payload: {
       page: 1,
       page_size: 20,
       status: "open"
@@ -159,7 +170,7 @@ const validEndpoints = [
 // Modified sendMaliciousRequest to use valid endpoints
 async function sendMaliciousRequest() {
   const endpoint = getRandomItem(validEndpoints);
-  
+
   console.log(`\n🚀 Testing rate limit on ${endpoint.path}`);
   console.log(`Method: ${endpoint.method}`);
 
@@ -189,7 +200,7 @@ async function sendMaliciousRequest() {
 
     const response = await axios.request(requestData);
     console.log(`✅ Response: ${response.status}`, response.data);
-    
+
     // Log rate limit headers
     const rateLimit = {
       limit: response.headers['x-ratelimit-limit'],
@@ -198,7 +209,7 @@ async function sendMaliciousRequest() {
       window: response.headers['x-ratelimit-window']
     };
     console.log('📊 Rate Limit Info:', rateLimit);
-    
+
   } catch (error) {
     if (error.response) {
       console.log(`🚫 Response: ${error.response.status}`, error.response.data);
@@ -230,17 +241,17 @@ async function startAttacks() {
   console.log(`⏱️  Attack interval: ${options.interval}ms`);
   console.log(`🔒 Security service: ${options.target}`);
   console.log(`🔑 Using API key: ${options.apiKey}`);
-  
+
   // Get initial auth token
   const authenticated = await testAuth();
   if (!authenticated) {
     console.error('❌ Failed to authenticate. Check credentials.');
     return;
   }
-  
+
   // Send initial attack
   await sendMaliciousRequest();
-  
+
   // Schedule recurring attacks
   attackInterval = setInterval(sendMaliciousRequest, Number.parseInt(options.interval));
 }

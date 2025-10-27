@@ -1,0 +1,59 @@
+# VESSA WAF - Standalone Reverse Proxy Mode
+# 
+# This Dockerfile creates a standalone WAF that can protect any backend
+# application without requiring code changes.
+#
+# Usage:
+#   docker build -f Dockerfile.waf -t vessa-waf .
+#   docker run -p 8080:8080 -e BACKEND_URL=http://yourapp:3000 vessa-waf
+
+FROM python:3.11-slim
+
+LABEL maintainer="VESSA Team <jashnaik2004@gmail.com>"
+LABEL description="VESSA WAF - Standalone Reverse Proxy Mode"
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
+COPY requirements.txt .
+COPY ../absolution/requirements.txt requirements-absolution.txt
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements-absolution.txt
+RUN pip install --no-cache-dir pyyaml
+
+# Copy application code
+COPY services /app/services
+COPY ../absolution /app/absolution
+
+# Install absolution package
+RUN cd /app/absolution && pip install -e .
+
+# Environment variables
+ENV PYTHONUNBUFFERED=1
+ENV HOST=0.0.0.0
+ENV PORT=8080
+ENV BACKEND_URL=http://localhost:3000
+ENV WAF_MODE=block
+ENV WAF_ENABLED=true
+
+# Expose port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import requests; requests.get('http://localhost:8080/waf/health')"
+
+# Run WAF in reverse proxy mode
+CMD python -m services.waf.reverse_proxy \
+    --backend ${BACKEND_URL} \
+    --port ${PORT} \
+    --host ${HOST} \
+    --mode ${WAF_MODE}
+

@@ -1,4 +1,4 @@
-import { useState} from 'react';
+import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,21 +16,26 @@ export function ApiKeyManager() {
   const [copied, setCopied] = useState(false);
   const { activeApiKey, setActiveApiKey } = useAuthStore();
 
-  // Fetch API key on component mount if not already in store
-  const { data, isLoading: isLoadingKey } = useQuery({
-    queryKey: ['apiKey'],
-    queryFn: authApi.getApiKey,
-    // Only fetch if we don't already have an API key
-    enabled: !activeApiKey
+  // Fetch API keys on component mount
+  const { data: apiKeysData, isLoading: isLoadingKey } = useQuery({
+    queryKey: ['apiKeys'],
+    queryFn: () => authApi.listApiKeys()
   });
 
-  // Set API key in store if we have one
-  if (data && !activeApiKey) {
-    setActiveApiKey(data);
+  // Set API key in store if we have one and don't already have an active key
+  if (apiKeysData?.items?.[0] && !activeApiKey) {
+    setActiveApiKey(apiKeysData.items[0]);
   }
 
   const regenerateKeyMutation = useMutation({
-    mutationFn: authApi.regenerateApiKey,
+    mutationFn: () => {
+      const apiKey = activeApiKey || apiKeysData?.items?.[0];
+      if (apiKey?.id) {
+        return authApi.regenerateApiKey(apiKey.id);
+      } else {
+        return authApi.createApiKey({ name: 'Default API Key' });
+      }
+    },
     onSuccess: (data) => {
       setActiveApiKey(data);
       setError(null);
@@ -41,7 +46,13 @@ export function ApiKeyManager() {
   });
 
   const revokeKeyMutation = useMutation({
-    mutationFn: authApi.revokeApiKey,
+    mutationFn: () => {
+      const apiKey = activeApiKey || apiKeysData?.items?.[0];
+      if (apiKey?.id) {
+        return authApi.deleteApiKey(apiKey.id);
+      }
+      return Promise.resolve();
+    },
     onSuccess: () => {
       setActiveApiKey(null);
       setError(null);
@@ -52,9 +63,10 @@ export function ApiKeyManager() {
   });
 
   const copyToClipboard = async () => {
-    if (activeApiKey?.key) {
+    const apiKey = activeApiKey?.key || apiKeysData?.items?.[0]?.key;
+    if (apiKey) {
       try {
-        await navigator.clipboard.writeText(activeApiKey.key);
+        await navigator.clipboard.writeText(apiKey);
         setCopied(true);
         toast.success('API key copied to clipboard');
         setTimeout(() => setCopied(false), 2000);
@@ -80,11 +92,11 @@ export function ApiKeyManager() {
           </Alert>
         )}
 
-        {activeApiKey?.key ? (
+        {(activeApiKey?.key || apiKeysData?.items?.[0]?.key) ? (
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="text-xs font-mono bg-muted px-2 py-1 rounded-md flex-1 overflow-hidden">
-                <span className="truncate">{activeApiKey.key}</span>
+                <span className="truncate">{(activeApiKey?.key || apiKeysData?.items?.[0]?.key)}</span>
               </Badge>
               <TooltipProvider>
                 <Tooltip>
@@ -99,20 +111,20 @@ export function ApiKeyManager() {
                 </Tooltip>
               </TooltipProvider>
             </div>
-            
+
             <div className="flex flex-col sm:flex-row gap-2">
-              <Button 
-                variant="outline" 
-                onClick={() => regenerateKeyMutation.mutate()} 
+              <Button
+                variant="outline"
+                onClick={() => regenerateKeyMutation.mutate()}
                 disabled={regenerateKeyMutation.isPending}
                 className="flex items-center gap-2"
               >
                 <RefreshCw className="h-4 w-4" />
                 {regenerateKeyMutation.isPending ? 'Regenerating...' : 'Regenerate Key'}
               </Button>
-              <Button 
-                variant="destructive" 
-                onClick={() => revokeKeyMutation.mutate()} 
+              <Button
+                variant="destructive"
+                onClick={() => revokeKeyMutation.mutate()}
                 disabled={revokeKeyMutation.isPending}
                 className="flex items-center gap-2"
               >
@@ -128,8 +140,8 @@ export function ApiKeyManager() {
             ) : (
               <>
                 <p className="mb-4">You don't have an active API key.</p>
-                <Button 
-                  onClick={() => regenerateKeyMutation.mutate()} 
+                <Button
+                  onClick={() => regenerateKeyMutation.mutate()}
                   disabled={regenerateKeyMutation.isPending}
                 >
                   {regenerateKeyMutation.isPending ? 'Generating...' : 'Generate API Key'}
@@ -139,7 +151,7 @@ export function ApiKeyManager() {
           </div>
         )}
       </CardContent>
-      
+
       {activeApiKey?.key && (
         <CardFooter className="flex-col items-start">
           <h4 className="text-sm font-semibold mb-2">Integration Options</h4>

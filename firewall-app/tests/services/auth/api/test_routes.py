@@ -80,12 +80,21 @@ def client(db_session):
 
 @pytest.fixture
 def test_company(db_session):
-    """Create a test company account."""
+    """Create a test company account.
+    
+    Uses environment variable for password, or generates a secure random one.
+    This ensures test credentials are never hardcoded.
+    """
+    import uuid
+    
+    # Use environment variable or generate secure random password
+    test_password = os.environ.get("TEST_USER_PASSWORD", f"TestPass_{uuid.uuid4().hex[:16]}!@#")
+    
     user = User(
         id="12345678-1234-5678-1234-567812345678",  # Fixed UUID for testing
         email="test@example.com",
         name="Test Company Inc.",
-        hashed_password=get_password_hash("testpassword123"),
+        hashed_password=get_password_hash(test_password),
         role="client",
         is_active=True,
         company_domain="example.com",
@@ -95,6 +104,10 @@ def test_company(db_session):
     db_session.add(user)
     db_session.commit()
     db_session.refresh(user)
+    
+    # Store password on user object for tests that need it
+    user.test_password = test_password
+    
     return user
 
 import requests

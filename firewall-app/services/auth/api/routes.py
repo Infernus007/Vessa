@@ -4,7 +4,7 @@ This module provides FastAPI routes for authentication endpoints.
 """
 
 from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
@@ -13,6 +13,7 @@ from services.common.database.session import get_db
 from services.common.models.user import User
 from services.user.core.user_service import UserService
 from services.user.api.schemas import UserCreate, UserResponse, PasswordChange
+from services.common.audit import get_audit_logger
 from .schemas import Token, TokenData
 
 router = APIRouter()  # No prefix, it's added in main.py
@@ -24,18 +25,41 @@ def get_auth_service(db: Session = Depends(get_db)) -> AuthService:
 
 @router.post("/token", response_model=Token)
 async def login_for_access_token(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
-    auth_service: AuthService = Depends(get_auth_service)
+    auth_service: AuthService = Depends(get_auth_service),
+    db: Session = Depends(get_db)
 ):
     """Login endpoint to get access token."""
+    audit_logger = get_audit_logger(db)
+    
     user = auth_service.authenticate_user(form_data.username, form_data.password)
     
+    # Get client IP and user agent
+    ip_address = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent", "unknown")
+    
     if not user:
+        # Log failed login attempt
+        audit_logger.log_login_failure(
+            email=form_data.username,
+            ip_address=ip_address,
+            reason="Incorrect email or password"
+        )
+        
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    
+    # Log successful login
+    audit_logger.log_login_success(
+        user_id=user.id,
+        user_email=user.email,
+        ip_address=ip_address,
+        user_agent=user_agent
+    )
         
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = auth_service.create_access_token(

@@ -46,29 +46,35 @@ def db():
 
 @db.command()
 def init():
-    """Initialize the database schema."""
+    """Initialize the database schema using Alembic migrations."""
     try:
-        engine = create_engine(get_database_url())
-        Base.metadata.create_all(bind=engine)
-        click.echo("✅ Database schema created successfully!")
+        import subprocess
+        
+        # Run Alembic upgrade to head
+        result = subprocess.run(
+            ["poetry", "run", "alembic", "upgrade", "head"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        
+        click.echo("✅ Database migrations applied successfully!")
+        click.echo(result.stdout)
+    except subprocess.CalledProcessError as e:
+        click.echo(f"❌ Error applying migrations: {e.stderr}", err=True)
     except Exception as e:
-        click.echo(f"❌ Error creating database schema: {str(e)}", err=True)
+        click.echo(f"❌ Error: {str(e)}", err=True)
 
 @db.command()
 def drop():
-    """Drop all database tables."""
+    """Drop all database tables using SQLAlchemy metadata."""
     if click.confirm("⚠️ This will delete all data. Are you sure?", abort=True):
         try:
             engine = create_engine(get_database_url())
             
-            with engine.connect() as conn:
-                # Drop tables in correct order (children first, then parents)
-                conn.execute(text("DROP TABLE IF EXISTS api_key"))
-                conn.execute(text("DROP TABLE IF EXISTS incident_response"))
-                conn.execute(text("DROP TABLE IF EXISTS incident"))
-                conn.execute(text("DROP TABLE IF EXISTS user_profile"))
-                conn.execute(text("DROP TABLE IF EXISTS user"))
-                conn.commit()
+            # Use SQLAlchemy's metadata to drop all tables safely
+            # This prevents SQL injection and handles dependencies correctly
+            Base.metadata.drop_all(bind=engine)
                 
             click.echo("✅ Database tables dropped successfully!")
         except Exception as e:
@@ -76,32 +82,106 @@ def drop():
 
 @db.command()
 def setup():
-    """Initialize database and create all tables."""
+    """Initialize database and create all tables using migrations."""
     try:
-        # Create database engine
+        import subprocess
+        
+        # Drop existing tables
         engine = create_engine(get_database_url())
+        Base.metadata.drop_all(bind=engine)
+        click.echo("✅ Dropped existing tables")
         
-        # Drop existing tables if any
-        with engine.begin() as conn:
-            # Drop tables in correct order (children first, then parents)
-            conn.execute(text("SET FOREIGN_KEY_CHECKS = 0"))
-            conn.execute(text("DROP TABLE IF EXISTS malicious_request"))
-            conn.execute(text("DROP TABLE IF EXISTS response_action"))
-            conn.execute(text("DROP TABLE IF EXISTS incident_response"))
-            conn.execute(text("DROP TABLE IF EXISTS incident_attachment"))
-            conn.execute(text("DROP TABLE IF EXISTS incident"))
-            conn.execute(text("DROP TABLE IF EXISTS api_key"))
-            conn.execute(text("DROP TABLE IF EXISTS user_profile"))
-            conn.execute(text("DROP TABLE IF EXISTS user"))
-            conn.execute(text("SET FOREIGN_KEY_CHECKS = 1"))
-        
-        # Create all tables
-        Base.metadata.create_all(bind=engine)
+        # Run migrations
+        result = subprocess.run(
+            ["poetry", "run", "alembic", "upgrade", "head"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
         
         click.echo("✅ Database initialized successfully!")
+        click.echo(result.stdout)
         
     except Exception as e:
         click.echo(f"❌ Error setting up database: {str(e)}", err=True)
+
+@db.command()
+def migrate():
+    """Create a new migration based on model changes."""
+    try:
+        import subprocess
+        
+        message = click.prompt("Migration message", type=str)
+        
+        result = subprocess.run(
+            ["poetry", "run", "alembic", "revision", "--autogenerate", "-m", message],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        
+        click.echo("✅ Migration created successfully!")
+        click.echo(result.stdout)
+        
+    except Exception as e:
+        click.echo(f"❌ Error creating migration: {str(e)}", err=True)
+
+@db.command()
+def upgrade():
+    """Apply pending migrations."""
+    try:
+        import subprocess
+        
+        result = subprocess.run(
+            ["poetry", "run", "alembic", "upgrade", "head"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        
+        click.echo("✅ Migrations applied successfully!")
+        click.echo(result.stdout)
+        
+    except Exception as e:
+        click.echo(f"❌ Error applying migrations: {str(e)}", err=True)
+
+@db.command()
+def downgrade():
+    """Rollback the last migration."""
+    if click.confirm("⚠️ This will rollback the last migration. Continue?", abort=True):
+        try:
+            import subprocess
+            
+            result = subprocess.run(
+                ["poetry", "run", "alembic", "downgrade", "-1"],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            
+            click.echo("✅ Migration rolled back successfully!")
+            click.echo(result.stdout)
+            
+        except Exception as e:
+            click.echo(f"❌ Error rolling back migration: {str(e)}", err=True)
+
+@db.command()
+def history():
+    """Show migration history."""
+    try:
+        import subprocess
+        
+        result = subprocess.run(
+            ["poetry", "run", "alembic", "history", "--verbose"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        
+        click.echo(result.stdout)
+        
+    except Exception as e:
+        click.echo(f"❌ Error showing history: {str(e)}", err=True)
 
 @cli.group()
 def user():

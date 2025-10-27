@@ -1932,25 +1932,25 @@ Please review the request details and findings to determine if further action is
                 incident_data = {
                     "id": incident.id,
                     "title": incident.title,
+                    "description": incident.description or incident.title,
                     "status": incident.status,
                     "severity": incident.severity,
-                    "timestamp": incident.created_at.isoformat(),
-                    "is_system_report": incident.reporter_id == "system"
+                    "created_at": incident.created_at.isoformat(),
+                    "updated_at": incident.updated_at.isoformat() if incident.updated_at else incident.created_at.isoformat(),
+                    "resolved_at": incident.resolved_at.isoformat() if incident.resolved_at else None,
+                    "resolution_notes": incident.resolution_notes,
+                    "threat_details": incident.threat_details or {},
+                    "reporter_id": incident.reporter_id,
+                    "assigned_to": incident.assigned_to,
+                    "affected_assets": incident.affected_assets or [],
+                    "tags": incident.tags or [],
+                    "detection_source": incident.detection_source or "unknown",
+                    "findings": [],
+                    "reviewed_at": None
                 }
                 
-                # Add user info if available
-                if reporter and reporter.id != "system":
-                    incident_data["user"] = {
-                        "name": reporter.name,
-                        "email": reporter.email,
-                        "avatar": reporter.profile.avatar_url if reporter.profile else None
-                    }
-                else:
-                    incident_data["user"] = {
-                        "name": "System",
-                        "email": "system@vessa.io",
-                        "avatar": None
-                    }
+                # Note: User info is not included in the incident data structure
+                # as the frontend expects the full incident details without nested user objects
                     
                 formatted_incidents.append(incident_data)
                 print(f"[DEBUG] Successfully formatted incident {incident.id}")
@@ -1966,6 +1966,7 @@ Please review the request details and findings to determine if further action is
         }
         
         print(f"[DEBUG] Successfully built response with {len(formatted_incidents)} incidents")
+        print(f"[DEBUG] First incident data: {formatted_incidents[0] if formatted_incidents else 'No incidents'}")
         return response
 
     def _get_time_threshold(self, time_range: str) -> datetime:

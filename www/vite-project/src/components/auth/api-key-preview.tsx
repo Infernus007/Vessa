@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from '@/lib/store/auth-store';
-import { authAPI } from '@/lib/api/auth-api';
+import { authApi } from '@/lib/api/auth';
 import type { APIKeyResponse, APIKeyListResponse } from '@/lib/api/auth-api';
 import { Copy, RefreshCw, Trash2, Power, PowerOff, Check } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
@@ -16,9 +16,9 @@ export function ApiKeyPreview() {
     const queryClient = useQueryClient();
 
     const { data: apiKeyData, isLoading: isLoadingKey } = useQuery<APIKeyListResponse>({
-        queryKey: ['apiKey'],
+        queryKey: ['apiKeys'],
         queryFn: async () => {
-            return await authAPI.listApiKeys();
+            return await authApi.listApiKeys();
         }
     });
 
@@ -26,16 +26,16 @@ export function ApiKeyPreview() {
 
     const { mutate: createKey, isPending: isCreating } = useMutation({
         mutationFn: async () => {
-            const newKey = await authAPI.createApiKey({ name: 'Default API Key' });
+            const newKey = await authApi.createApiKey({ name: 'Default API Key' });
             return newKey;
         },
         onSuccess: (data) => {
             setApiKey(data.key);
-            queryClient.setQueryData(['apiKey'], {
+            queryClient.setQueryData(['apiKeys'], {
                 items: [data],
                 total: 1
             });
-            queryClient.invalidateQueries({ queryKey: ['apiKey'] });
+            queryClient.invalidateQueries({ queryKey: ['apiKeys'] });
             toast.success('API key created successfully');
         },
         onError: () => {
@@ -46,16 +46,16 @@ export function ApiKeyPreview() {
     const { mutate: regenerateKey, isPending: isRegenerating } = useMutation({
         mutationFn: async () => {
             if (!apiKey?.id) throw new Error('No API key to regenerate');
-            const newKey = await authAPI.regenerateApiKey(apiKey.id);
+            const newKey = await authApi.regenerateApiKey(apiKey.id);
             return newKey;
         },
         onSuccess: (data) => {
             setApiKey(data.key);
-            queryClient.setQueryData(['apiKey'], (old: APIKeyListResponse | undefined) => ({
+            queryClient.setQueryData(['apiKeys'], (old: APIKeyListResponse | undefined) => ({
                 items: old?.items ? [data, ...old.items.slice(1)] : [data],
                 total: old?.total || 1
             }));
-            queryClient.invalidateQueries({ queryKey: ['apiKey'] });
+            queryClient.invalidateQueries({ queryKey: ['apiKeys'] });
             toast.success('API key regenerated successfully');
         },
         onError: () => {
@@ -66,15 +66,15 @@ export function ApiKeyPreview() {
     const { mutate: deleteKey, isPending: isDeleting } = useMutation({
         mutationFn: async () => {
             if (!apiKey?.id) throw new Error('No API key to delete');
-            return await authAPI.deleteApiKey(apiKey.id);
+            return await authApi.deleteApiKey(apiKey.id);
         },
         onSuccess: () => {
             setApiKey(null);
-            queryClient.setQueryData(['apiKey'], {
+            queryClient.setQueryData(['apiKeys'], {
                 items: [],
                 total: 0
             });
-            queryClient.invalidateQueries({ queryKey: ['apiKey'] });
+            queryClient.invalidateQueries({ queryKey: ['apiKeys'] });
             toast.success('API key deleted successfully');
         },
         onError: () => {
@@ -85,16 +85,16 @@ export function ApiKeyPreview() {
     const { mutate: toggleActivation, isPending: isTogglingActivation } = useMutation({
         mutationFn: async () => {
             if (!apiKey?.id) throw new Error('No API key to toggle');
-            return apiKey.is_active 
-                ? await authAPI.deactivateApiKey(apiKey.id)
-                : await authAPI.activateApiKey(apiKey.id);
+            return apiKey.is_active
+                ? await authApi.deactivateApiKey(apiKey.id)
+                : await authApi.activateApiKey(apiKey.id);
         },
         onSuccess: (data) => {
-            queryClient.setQueryData(['apiKey'], (old: APIKeyListResponse | undefined) => ({
+            queryClient.setQueryData(['apiKeys'], (old: APIKeyListResponse | undefined) => ({
                 items: old?.items ? [data, ...old.items.slice(1)] : [data],
                 total: old?.total || 1
             }));
-            queryClient.invalidateQueries({ queryKey: ['apiKey'] });
+            queryClient.invalidateQueries({ queryKey: ['apiKeys'] });
             toast.success(`API key ${data.is_active ? 'activated' : 'deactivated'} successfully`);
         },
         onError: () => {
@@ -199,10 +199,10 @@ export function ApiKeyPreview() {
                             ) : (
                                 <Power className="h-4 w-4 mr-2" />
                             )}
-                            {isTogglingActivation 
-                                ? "Updating..." 
-                                : apiKey.is_active 
-                                    ? 'Deactivate' 
+                            {isTogglingActivation
+                                ? "Updating..."
+                                : apiKey.is_active
+                                    ? 'Deactivate'
                                     : 'Activate'
                             }
                         </Button>

@@ -8,6 +8,9 @@ import { AnalyticsReports } from "@/components/dashboard/analytics-reports";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { analyticsAPI } from "@/lib/api/analytics-api";
+import { incidentsAPI } from "@/lib/api/incidents-api";
 
 interface Incident {
   id: string;
@@ -37,20 +40,24 @@ export default function Dashboard() {
   const [recentIncidents, setRecentIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Fetch analytics data for KPIs - using 'all' time range to include test data
+  const { data: analyticsData, isLoading: analyticsLoading } = useQuery({
+    queryKey: ['analytics', 'overview', 'all'],
+    queryFn: () => analyticsAPI.getOverview('all')
+  });
+
+  // Fetch recent incidents using proper API client
   useEffect(() => {
     const fetchRecentIncidents = async () => {
       try {
-        const response = await fetch('http://localhost:8000/incidents/recent?limit=3', {
-          headers: {
-            'x-api-key': 'vk_9f47a6d8-a671-4edf-af38-a097212ac41c'
-          }
-        });
-        const data = await response.json();
-        console.log('Recent incidents:', data);
+        console.log('[Dashboard] Fetching recent incidents...');
+        const data = await incidentsAPI.getRecentIncidents({ limit: 3 });
+        console.log('[Dashboard] Recent incidents fetched:', data);
+        console.log('[Dashboard] Number of incidents:', data.incidents?.length || 0);
         setRecentIncidents(data.incidents || []);
         setLoading(false);
       } catch (error) {
-        console.error('Error fetching recent incidents:', error);
+        console.error('[Dashboard] Error fetching recent incidents:', error);
         setLoading(false);
       }
     };
@@ -58,12 +65,18 @@ export default function Dashboard() {
     fetchRecentIncidents();
   }, []);
 
+  // Debug logging for analytics
+  useEffect(() => {
+    console.log('[Dashboard] Analytics data:', analyticsData);
+    console.log('[Dashboard] Analytics loading:', analyticsLoading);
+  }, [analyticsData, analyticsLoading]);
+
   // Format relative time
   const getRelativeTime = (timestamp: string) => {
     const now = new Date();
     const incidentDate = new Date(timestamp);
     const diffInHours = Math.floor((now.getTime() - incidentDate.getTime()) / (1000 * 60 * 60));
-    
+
     if (diffInHours < 1) {
       const diffInMinutes = Math.floor((now.getTime() - incidentDate.getTime()) / (1000 * 60));
       return `${diffInMinutes} minute${diffInMinutes !== 1 ? 's' : ''} ago`;
@@ -101,38 +114,64 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Active Incidents</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Requests</CardTitle>
             <Shield className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
-            <p className="text-xs text-muted-foreground">+2 since yesterday</p>
+            {analyticsLoading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+              <div className="text-2xl font-bold">{analyticsData?.total_requests || 0}</div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              {analyticsData?.blocked_requests || 0} blocked
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Avg. Resolution Time</CardTitle>
+            <CardTitle className="text-sm font-medium">Block Rate</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">4.2h</div>
-            <p className="text-xs text-muted-foreground">-12% from last week</p>
+            {analyticsLoading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+              <div className="text-2xl font-bold">{analyticsData?.block_rate?.toFixed(1) || 0}%</div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Avg threat score: {analyticsData?.avg_threat_score?.toFixed(2) || 0}
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Team Members</CardTitle>
+            <CardTitle className="text-sm font-medium">Threat Types</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">8</div>
-            <p className="text-xs text-muted-foreground">+1 new this month</p>
+            {analyticsLoading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+              <div className="text-2xl font-bold">
+                {analyticsData?.threat_distribution ? Object.keys(analyticsData.threat_distribution).length : 0}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              {analyticsData?.threat_distribution ?
+                Object.entries(analyticsData.threat_distribution)
+                  .sort(([, a], [, b]) => (b as number) - (a as number))
+                  .slice(0, 2)
+                  .map(([type, count]) => `${type}: ${count}`)
+                  .join(', ') : 'No threats detected'
+              }
+            </p>
           </CardContent>
         </Card>
       </div>
 
       {/* Analytics Reports */}
-      <AnalyticsReports />
+      <AnalyticsReports timeRange="all" />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
@@ -193,7 +232,7 @@ export default function Dashboard() {
 
         <div className="space-y-6">
           <ApiKeyPreview />
-          
+
           <Card>
             <CardHeader>
               <CardTitle>Integration Status</CardTitle>

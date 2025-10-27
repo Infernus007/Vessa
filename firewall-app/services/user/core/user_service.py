@@ -493,4 +493,133 @@ class UserService:
         """
         query = self.db.query(User)
        
-        return query.offset(skip).limit(limit).all() 
+        return query.offset(skip).limit(limit).all()
+
+    async def regenerate_api_key(self, key_id: str, user_id: str) -> APIKey:
+        """Regenerate an API key while keeping its metadata.
+        
+        Args:
+            key_id: ID of the API key to regenerate
+            user_id: ID of the user who owns the key
+            
+        Returns:
+            APIKey: The regenerated API key
+            
+        Raises:
+            HTTPException: If API key not found or user doesn't own it
+        """
+        key = self.db.query(APIKey).filter(
+            and_(
+                APIKey.id == key_id,
+                APIKey.user_id == user_id
+            )
+        ).first()
+        
+        if not key:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="API key not found"
+            )
+            
+        # Generate new key
+        key.key = f"vk_{generate_uuid()}"
+        key.last_used_at = None
+        key.revoked_at = None
+        key.is_active = True
+        key.created_at = datetime.utcnow()
+        
+        self.db.commit()
+        self.db.refresh(key)
+        return key
+
+    async def delete_api_key(self, key_id: str, user_id: str) -> None:
+        """Delete an API key permanently.
+        
+        Args:
+            key_id: ID of the API key to delete
+            user_id: ID of the user who owns the key
+            
+        Raises:
+            HTTPException: If API key not found or user doesn't own it
+        """
+        key = self.db.query(APIKey).filter(
+            and_(
+                APIKey.id == key_id,
+                APIKey.user_id == user_id
+            )
+        ).first()
+        
+        if not key:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="API key not found"
+            )
+            
+        self.db.delete(key)
+        self.db.commit()
+
+    async def deactivate_api_key(self, key_id: str, user_id: str) -> APIKey:
+        """Deactivate an API key.
+        
+        Args:
+            key_id: ID of the API key to deactivate
+            user_id: ID of the user who owns the key
+            
+        Returns:
+            APIKey: The deactivated API key
+            
+        Raises:
+            HTTPException: If API key not found or user doesn't own it
+        """
+        key = self.db.query(APIKey).filter(
+            and_(
+                APIKey.id == key_id,
+                APIKey.user_id == user_id
+            )
+        ).first()
+        
+        if not key:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="API key not found"
+            )
+            
+        key.is_active = False
+        key.revoked_at = datetime.utcnow()
+        
+        self.db.commit()
+        self.db.refresh(key)
+        return key
+
+    async def activate_api_key(self, key_id: str, user_id: str) -> APIKey:
+        """Activate an API key.
+        
+        Args:
+            key_id: ID of the API key to activate
+            user_id: ID of the user who owns the key
+            
+        Returns:
+            APIKey: The activated API key
+            
+        Raises:
+            HTTPException: If API key not found or user doesn't own it
+        """
+        key = self.db.query(APIKey).filter(
+            and_(
+                APIKey.id == key_id,
+                APIKey.user_id == user_id
+            )
+        ).first()
+        
+        if not key:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="API key not found"
+            )
+            
+        key.is_active = True
+        key.revoked_at = None
+        
+        self.db.commit()
+        self.db.refresh(key)
+        return key 

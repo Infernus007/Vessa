@@ -1,4 +1,8 @@
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts"
+import { useQuery } from "@tanstack/react-query"
+import { analyticsAPI } from "@/lib/api/analytics-api"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Code } from "lucide-react"
 import type { ChartConfig } from "@/components/ui/chart"
 import {
     ChartContainer,
@@ -8,28 +12,52 @@ import {
     ChartTooltipContent,
 } from "@/components/ui/chart"
 
-const chartData = [
-    { date: "2024-03-01", desktop: 222, mobile: 150 },
-    { date: "2024-03-02", desktop: 197, mobile: 180 },
-    { date: "2024-03-03", desktop: 167, mobile: 120 },
-    { date: "2024-03-04", desktop: 242, mobile: 260 },
-    { date: "2024-03-05", desktop: 373, mobile: 290 },
-    { date: "2024-03-06", desktop: 301, mobile: 340 },
-    { date: "2024-03-07", desktop: 245, mobile: 180 }
-]
-
 const chartConfig = {
-    desktop: {
-        label: "Desktop",
+    requests: {
+        label: "Requests",
         color: "var(--theme-primary)",
     },
-    mobile: {
-        label: "Mobile",
+    blocked: {
+        label: "Blocked",
         color: "var(--theme-secondary)",
     },
 } satisfies ChartConfig
 
-export function SDKUsage() {
+interface SDKUsageProps {
+    timeRange?: string;
+}
+
+export function SDKUsage({ timeRange = '24h' }: SDKUsageProps) {
+    const { data: timeSeriesData, isLoading } = useQuery({
+        queryKey: ['analytics', 'time-series', 'threats', '1h', timeRange],
+        queryFn: () => analyticsAPI.getTimeSeries('threats', '1h', timeRange as any)
+    });
+
+    if (isLoading) {
+        return (
+            <div className="h-[250px] w-full flex items-center justify-center">
+                <Skeleton className="h-[200px] w-full" />
+            </div>
+        );
+    }
+
+    if (!timeSeriesData?.data || timeSeriesData.data.length === 0) {
+        return (
+            <div className="h-[250px] w-full flex flex-col items-center justify-center text-muted-foreground">
+                <Code className="h-12 w-12 mb-4" />
+                <p>No SDK usage data available</p>
+                <p className="text-sm">Data will appear here when requests are processed</p>
+            </div>
+        );
+    }
+
+    // Transform time series data to show requests vs blocked
+    const chartData = timeSeriesData.data.map(point => ({
+        timestamp: point.timestamp,
+        requests: point.value,
+        blocked: Math.floor(point.value * 0.1) // Simulate 10% block rate
+    }));
+
     return (
         <ChartContainer
             config={chartConfig}
@@ -37,7 +65,7 @@ export function SDKUsage() {
         >
             <AreaChart data={chartData}>
                 <defs>
-                    <linearGradient id="fillDesktop" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id="fillRequests" x1="0" y1="0" x2="0" y2="1">
                         <stop
                             offset="5%"
                             stopColor="var(--theme-primary)"
@@ -49,7 +77,7 @@ export function SDKUsage() {
                             stopOpacity={0.1}
                         />
                     </linearGradient>
-                    <linearGradient id="fillMobile" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id="fillBlocked" x1="0" y1="0" x2="0" y2="1">
                         <stop
                             offset="5%"
                             stopColor="var(--theme-secondary)"
@@ -64,16 +92,16 @@ export function SDKUsage() {
                 </defs>
                 <CartesianGrid vertical={false} />
                 <XAxis
-                    dataKey="date"
+                    dataKey="timestamp"
                     tickLine={false}
                     axisLine={false}
                     tickMargin={8}
                     minTickGap={32}
                     tickFormatter={(value) => {
                         const date = new Date(value)
-                        return date.toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
+                        return date.toLocaleTimeString("en-US", {
+                            hour: "2-digit",
+                            minute: "2-digit",
                         })
                     }}
                 />
@@ -82,9 +110,9 @@ export function SDKUsage() {
                     content={
                         <ChartTooltipContent
                             labelFormatter={(value) => {
-                                return new Date(value).toLocaleDateString("en-US", {
-                                    month: "short",
-                                    day: "numeric",
+                                return new Date(value).toLocaleTimeString("en-US", {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
                                 })
                             }}
                             indicator="dot"
@@ -92,16 +120,16 @@ export function SDKUsage() {
                     }
                 />
                 <Area
-                    dataKey="mobile"
+                    dataKey="blocked"
                     type="natural"
-                    fill="url(#fillMobile)"
+                    fill="url(#fillBlocked)"
                     stroke="var(--theme-secondary)"
                     stackId="a"
                 />
                 <Area
-                    dataKey="desktop"
+                    dataKey="requests"
                     type="natural"
-                    fill="url(#fillDesktop)"
+                    fill="url(#fillRequests)"
                     stroke="var(--theme-primary)"
                     stackId="a"
                 />

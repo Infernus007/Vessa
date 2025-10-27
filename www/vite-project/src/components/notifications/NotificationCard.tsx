@@ -93,7 +93,7 @@ export function NotificationCard({
               {findings.slice(0, 3).map((finding, index) => (
                 <li key={index} className="flex items-center gap-1">
                   <AlertTriangle className="h-3 w-3 text-yellow-500" />
-                  {finding.message}
+                  {finding?.message || finding}
                 </li>
               ))}
               {findings.length > 3 && (
@@ -112,7 +112,7 @@ export function NotificationCard({
               {detectionSource.replace('_', ' ')}
             </Badge>
           )}
-          
+
           {affectedAssets && affectedAssets.length > 0 && (
             <Badge variant="outline" className="flex items-center gap-1">
               <Server className="h-3 w-3" />

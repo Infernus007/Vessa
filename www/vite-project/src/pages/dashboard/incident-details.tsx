@@ -64,7 +64,7 @@ export default function IncidentDetails() {
                 <div>
                     <h1 className="text-3xl font-bold mb-2">{incident.title}</h1>
                     <div className="flex items-center gap-4">
-                        <Badge 
+                        <Badge
                             variant="secondary"
                             className={statusColors[incident.status as keyof typeof statusColors]}
                         >
@@ -118,7 +118,7 @@ export default function IncidentDetails() {
                                     Affected Systems
                                 </h3>
                                 <p className="text-sm text-muted-foreground">
-                                    {incident.threat_details.risk_assessment.potential_impact.affected_systems?.join(', ') || 'None'}
+                                    {incident.threat_details?.risk_assessment?.potential_impact?.affected_systems?.join(', ') || incident.affected_assets?.join(', ') || 'None'}
                                 </p>
                             </div>
                             <div className="space-y-1">
@@ -137,146 +137,172 @@ export default function IncidentDetails() {
                 </Card>
 
                 {/* Risk Assessment */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Risk Assessment</CardTitle>
-                        <CardDescription>Threat analysis and risk evaluation</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                                <h3 className="text-sm font-medium flex items-center gap-2">
-                                    <Activity className="h-4 w-4" />
-                                    Risk Level
-                                </h3>
-                                <Badge variant="outline" className="mt-1">
-                                    {incident.threat_details.risk_assessment.level}
-                                </Badge>
-                            </div>
-                            <div className="space-y-1">
-                                <h3 className="text-sm font-medium flex items-center gap-2">
-                                    <AlertOctagon className="h-4 w-4" />
-                                    Risk Score
-                                </h3>
-                                <p className="text-sm text-muted-foreground">
-                                    {incident.threat_details.risk_assessment.score}/100
-                                </p>
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <h3 className="text-sm font-medium">Risk Factors</h3>
-                            <ul className="space-y-2">
-                                {incident.threat_details.risk_assessment.factors.map(factor => (
-                                    <li key={`${factor.factor}-${factor.weight}`} className="text-sm text-muted-foreground">
-                                        • {factor.factor} (Weight: {factor.weight})
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                        <div className="space-y-2">
-                            <h3 className="text-sm font-medium">Potential Impact</h3>
-                            <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                    <p className="text-sm font-medium">Integrity</p>
-                                    <p className="text-sm text-muted-foreground">
-                                        {incident.threat_details.risk_assessment.potential_impact.integrity}/10
-                                    </p>
+                {incident.threat_details?.risk_assessment && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Risk Assessment</CardTitle>
+                            <CardDescription>Threat analysis and risk evaluation</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <h3 className="text-sm font-medium flex items-center gap-2">
+                                        <Activity className="h-4 w-4" />
+                                        Risk Level
+                                    </h3>
+                                    <Badge variant="outline" className="mt-1">
+                                        {incident.threat_details.risk_assessment.level}
+                                    </Badge>
                                 </div>
-                                <div>
-                                    <p className="text-sm font-medium">Availability</p>
+                                <div className="space-y-1">
+                                    <h3 className="text-sm font-medium flex items-center gap-2">
+                                        <AlertOctagon className="h-4 w-4" />
+                                        Risk Score
+                                    </h3>
                                     <p className="text-sm text-muted-foreground">
-                                        {incident.threat_details.risk_assessment.potential_impact.availability}/10
-                                    </p>
-                                </div>
-                                <div>
-                                    <p className="text-sm font-medium">Confidentiality</p>
-                                    <p className="text-sm text-muted-foreground">
-                                        {incident.threat_details.risk_assessment.potential_impact.confidentiality}/10
+                                        {incident.threat_details.risk_assessment.score}/100
                                     </p>
                                 </div>
                             </div>
-                        </div>
-                    </CardContent>
-                </Card>
+                            {incident.threat_details.risk_assessment.factors && incident.threat_details.risk_assessment.factors.length > 0 && (
+                                <div className="space-y-2">
+                                    <h3 className="text-sm font-medium">Risk Factors</h3>
+                                    <ul className="space-y-2">
+                                        {incident.threat_details.risk_assessment.factors.map(factor => (
+                                            <li key={`${factor.factor}-${factor.weight}`} className="text-sm text-muted-foreground">
+                                                • {factor.factor} (Weight: {factor.weight})
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                            {incident.threat_details.risk_assessment.potential_impact && (
+                                <div className="space-y-2">
+                                    <h3 className="text-sm font-medium">Potential Impact</h3>
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <div>
+                                            <p className="text-sm font-medium">Integrity</p>
+                                            <p className="text-sm text-muted-foreground">
+                                                {incident.threat_details.risk_assessment.potential_impact.integrity || 0}/10
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-medium">Availability</p>
+                                            <p className="text-sm text-muted-foreground">
+                                                {incident.threat_details.risk_assessment.potential_impact.availability || 0}/10
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-medium">Confidentiality</p>
+                                            <p className="text-sm text-muted-foreground">
+                                                {incident.threat_details.risk_assessment.potential_impact.confidentiality || 0}/10
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* Request Details */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Request Details</CardTitle>
-                        <CardDescription>Information about the suspicious request</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                            <h3 className="text-sm font-medium">Request URL</h3>
-                            <p className="text-sm text-muted-foreground font-mono">
-                                {incident.threat_details.request_context.method} {incident.threat_details.request_context.url}
-                            </p>
-                        </div>
-                        <div className="space-y-2">
-                            <h3 className="text-sm font-medium">Client Information</h3>
-                            <div className="grid grid-cols-2 gap-2 text-sm">
-                                <div>
-                                    <p className="font-medium">IP Address</p>
-                                    <p className="text-muted-foreground">{incident.threat_details.request_context.client_info.ip}</p>
+                {incident.threat_details?.request_context && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Request Details</CardTitle>
+                            <CardDescription>Information about the suspicious request</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {incident.threat_details.request_context.method && incident.threat_details.request_context.url && (
+                                <div className="space-y-2">
+                                    <h3 className="text-sm font-medium">Request URL</h3>
+                                    <p className="text-sm text-muted-foreground font-mono">
+                                        {incident.threat_details.request_context.method} {incident.threat_details.request_context.url}
+                                    </p>
                                 </div>
-                                <div>
-                                    <p className="font-medium">Hostname</p>
-                                    <p className="text-muted-foreground">{incident.threat_details.request_context.client_info.hostname}</p>
+                            )}
+                            {incident.threat_details.request_context.client_info && (
+                                <div className="space-y-2">
+                                    <h3 className="text-sm font-medium">Client Information</h3>
+                                    <div className="grid grid-cols-2 gap-2 text-sm">
+                                        {incident.threat_details.request_context.client_info.ip && (
+                                            <div>
+                                                <p className="font-medium">IP Address</p>
+                                                <p className="text-muted-foreground">{incident.threat_details.request_context.client_info.ip}</p>
+                                            </div>
+                                        )}
+                                        {incident.threat_details.request_context.client_info.hostname && (
+                                            <div>
+                                                <p className="font-medium">Hostname</p>
+                                                <p className="text-muted-foreground">{incident.threat_details.request_context.client_info.hostname}</p>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <h3 className="text-sm font-medium">Request Body</h3>
-                            <pre className="text-sm bg-muted p-2 rounded-md overflow-auto">
-                                {JSON.stringify(incident.threat_details.request_context.body, null, 2)}
-                            </pre>
-                        </div>
-                    </CardContent>
-                </Card>
+                            )}
+                            {incident.threat_details.request_context.body && (
+                                <div className="space-y-2">
+                                    <h3 className="text-sm font-medium">Request Body</h3>
+                                    <pre className="text-sm bg-muted p-2 rounded-md overflow-auto">
+                                        {JSON.stringify(incident.threat_details.request_context.body, null, 2)}
+                                    </pre>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* Threat Analysis */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Threat Analysis</CardTitle>
-                        <CardDescription>Detailed analysis of the detected threat</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        <div className="space-y-2">
-                            <h3 className="text-sm font-medium">Findings</h3>
-                            <ul className="space-y-1">
-                                {incident.threat_details.threat_analysis.findings.map(finding => (
-                                    <li key={finding} className="text-sm text-muted-foreground">
-                                        • {finding}
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                        <div className="space-y-2">
-                            <h3 className="text-sm font-medium">Attack Vectors</h3>
-                            <div className="flex flex-wrap gap-2">
-                                {incident.threat_details.threat_analysis.attack_vectors.techniques.map(technique => (
-                                    <Badge key={technique} variant="outline">
-                                        {technique.replace('_', ' ')}
-                                    </Badge>
-                                ))}
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <h3 className="text-sm font-medium">Detection Timeline</h3>
-                            <div className="space-y-3">
-                                {incident.threat_details.detection_timeline.steps.map(step => (
-                                    <div key={`${step.phase}-${step.timestamp}`} className="text-sm">
-                                        <p className="font-medium">{step.phase}</p>
-                                        <p className="text-muted-foreground">{step.action}</p>
-                                        <p className="text-xs text-muted-foreground">
-                                            {format(new Date(step.timestamp), 'PPpp')}
-                                        </p>
+                {incident.threat_details?.threat_analysis && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Threat Analysis</CardTitle>
+                            <CardDescription>Detailed analysis of the detected threat</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            {incident.threat_details.threat_analysis.findings && incident.threat_details.threat_analysis.findings.length > 0 && (
+                                <div className="space-y-2">
+                                    <h3 className="text-sm font-medium">Findings</h3>
+                                    <ul className="space-y-1">
+                                        {incident.threat_details.threat_analysis.findings.map(finding => (
+                                            <li key={finding} className="text-sm text-muted-foreground">
+                                                • {finding}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                            {incident.threat_details.threat_analysis.attack_vectors?.techniques && incident.threat_details.threat_analysis.attack_vectors.techniques.length > 0 && (
+                                <div className="space-y-2">
+                                    <h3 className="text-sm font-medium">Attack Vectors</h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {incident.threat_details.threat_analysis.attack_vectors.techniques.map(technique => (
+                                            <Badge key={technique} variant="outline">
+                                                {technique.replace('_', ' ')}
+                                            </Badge>
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
+                                </div>
+                            )}
+                            {incident.threat_details.detection_timeline?.steps && incident.threat_details.detection_timeline.steps.length > 0 && (
+                                <div className="space-y-2">
+                                    <h3 className="text-sm font-medium">Detection Timeline</h3>
+                                    <div className="space-y-3">
+                                        {incident.threat_details.detection_timeline.steps.map(step => (
+                                            <div key={`${step.phase}-${step.timestamp}`} className="text-sm">
+                                                <p className="font-medium">{step.phase}</p>
+                                                <p className="text-muted-foreground">{step.action}</p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {format(new Date(step.timestamp), 'PPpp')}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
             </div>
         </div>
     );

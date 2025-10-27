@@ -5,7 +5,8 @@ This module defines request and response models for the user management API.
 
 from typing import List, Optional
 from datetime import datetime
-from pydantic import BaseModel, EmailStr, Field, constr
+from pydantic import BaseModel, EmailStr, Field, constr, field_validator
+from services.common.utils.security import is_valid_password
 
 class UserBase(BaseModel):
     """Base model for users."""
@@ -15,6 +16,17 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     """Model for user creation requests."""
     password: constr(min_length=8)
+    
+    @field_validator('password')
+    @classmethod
+    def validate_password_strength(cls, v: str) -> str:
+        """Validate password meets security requirements."""
+        if not is_valid_password(v):
+            raise ValueError(
+                "Password must contain at least: "
+                "1 uppercase letter, 1 lowercase letter, 1 digit, and 1 special character"
+            )
+        return v
 
 class UserUpdate(BaseModel):
     """Model for user update requests."""
@@ -38,6 +50,17 @@ class PasswordChange(BaseModel):
     """Model for password change requests."""
     current_password: str
     new_password: constr(min_length=8)
+    
+    @field_validator('new_password')
+    @classmethod
+    def validate_new_password_strength(cls, v: str) -> str:
+        """Validate new password meets security requirements."""
+        if not is_valid_password(v):
+            raise ValueError(
+                "Password must contain at least: "
+                "1 uppercase letter, 1 lowercase letter, 1 digit, and 1 special character"
+            )
+        return v
 
 class UserProfileBase(BaseModel):
     """Base model for user profiles."""

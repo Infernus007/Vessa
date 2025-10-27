@@ -6,7 +6,7 @@ import { Download, Calendar } from 'lucide-react';
 import { AnalyticsReports } from '@/components/dashboard/analytics-reports';
 
 export default function ReportsPage() {
-  const [timeRange, setTimeRange] = React.useState('24h');
+  const [timeRange, setTimeRange] = React.useState<'24h' | '7d' | '30d' | 'all'>('all');
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -17,7 +17,7 @@ export default function ReportsPage() {
           <p className="text-muted-foreground">Analyze security trends and generate reports</p>
         </div>
         <div className="flex gap-4">
-          <Select value={timeRange} onValueChange={setTimeRange}>
+          <Select value={timeRange} onValueChange={(value: any) => setTimeRange(value)}>
             <SelectTrigger className="w-[180px]">
               <Calendar className="h-4 w-4 mr-2" />
               <SelectValue placeholder="Time Range" />
@@ -26,7 +26,7 @@ export default function ReportsPage() {
               <SelectItem value="24h">Last 24 Hours</SelectItem>
               <SelectItem value="7d">Last 7 Days</SelectItem>
               <SelectItem value="30d">Last 30 Days</SelectItem>
-              <SelectItem value="90d">Last 90 Days</SelectItem>
+              <SelectItem value="all">All Time</SelectItem>
             </SelectContent>
           </Select>
           <Button>
@@ -37,7 +37,7 @@ export default function ReportsPage() {
       </div>
 
       {/* Analytics Dashboard */}
-      <AnalyticsReports />
+      <AnalyticsReports timeRange={timeRange} />
 
       {/* Additional Reports */}
       <div className="grid gap-4 md:grid-cols-2">
