@@ -9,7 +9,6 @@ from sqlalchemy.orm import Session
 
 from services.user.core.user_service import UserService
 from services.common.database.session import get_db
-from services.auth.core.auth_service import AuthService
 from services.common.models.user import User
 from services.auth.api.routes import get_current_active_user
 from .schemas import (
@@ -57,8 +56,8 @@ async def get_current_user_info(
 @router.get("/{user_id}", response_model=UserResponse)
 async def get_user(
     user_id: str,
-    db: Session = Depends(get_db),
-    current_user = Depends(AuthService.get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
 ):
     """Get a specific user's information."""
     service = UserService(db)
@@ -71,8 +70,8 @@ async def get_user(
 async def list_users(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
-    db: Session = Depends(get_db),
-    current_user = Depends(AuthService.get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
 ):
     """List users with optional filtering."""
     service = UserService(db)
@@ -94,8 +93,8 @@ async def update_user_info(
 @router.post("/me/change-password")
 async def change_password(
     password_data: PasswordChange,
-    db: Session = Depends(get_db),
-    current_user = Depends(AuthService.get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
 ):
     """Change the current user's password."""
     service = UserService(db)
@@ -112,8 +111,8 @@ async def change_password(
 
 @router.get("/me/profile", response_model=UserProfileResponse)
 async def get_current_user_profile(
-    db: Session = Depends(get_db),
-    current_user = Depends(AuthService.get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
 ):
     """Get the current user's profile."""
     service = UserService(db)
@@ -125,8 +124,8 @@ async def get_current_user_profile(
 @router.put("/me/profile", response_model=UserProfileResponse)
 async def update_current_user_profile(
     profile_data: UserProfileCreate,
-    db: Session = Depends(get_db),
-    current_user = Depends(AuthService.get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
 ):
     """Update the current user's profile."""
     service = UserService(db)
@@ -166,25 +165,26 @@ async def list_api_keys(
         total=len(keys)
     )
 
-@router.delete("/me/api-keys/{key_id}")
+@router.post("/me/api-keys/{key_id}/revoke")
 async def revoke_api_key(
     key_id: str,
     current_user: User = Depends(get_current_active_user),
     service: UserService = Depends(get_user_service)
-) -> None:
-    """Revoke an API key."""
+):
+    """Revoke an API key (soft delete - sets is_active=False)."""
     await service.revoke_api_key(key_id)
+    return {"message": "API key revoked successfully"}
 
 @router.post("/me/api-keys/{key_id}/regenerate", response_model=APIKeyResponse)
 async def regenerate_api_key(
     key_id: str,
-    db: Session = Depends(get_db),
-    current_user = Depends(AuthService.get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
 ):
     """Regenerate an API key while keeping its metadata."""
     service = UserService(db)
     try:
-        api_key = service.regenerate_api_key(key_id, current_user.id)
+        api_key = await service.regenerate_api_key(key_id, current_user.id)
         return api_key
     except HTTPException:
         raise
@@ -194,13 +194,13 @@ async def regenerate_api_key(
 @router.delete("/me/api-keys/{key_id}")
 async def delete_api_key(
     key_id: str,
-    db: Session = Depends(get_db),
-    current_user = Depends(AuthService.get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
 ):
     """Delete an API key."""
     service = UserService(db)
     try:
-        service.delete_api_key(key_id, current_user.id)
+        await service.delete_api_key(key_id, current_user.id)
         return {"message": "API key deleted successfully"}
     except HTTPException:
         raise
@@ -210,13 +210,13 @@ async def delete_api_key(
 @router.post("/me/api-keys/{key_id}/deactivate", response_model=APIKeyResponse)
 async def deactivate_api_key(
     key_id: str,
-    db: Session = Depends(get_db),
-    current_user = Depends(AuthService.get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
 ):
     """Deactivate an API key."""
     service = UserService(db)
     try:
-        api_key = service.deactivate_api_key(key_id, current_user.id)
+        api_key = await service.deactivate_api_key(key_id, current_user.id)
         return api_key
     except HTTPException:
         raise
@@ -226,13 +226,13 @@ async def deactivate_api_key(
 @router.post("/me/api-keys/{key_id}/activate", response_model=APIKeyResponse)
 async def activate_api_key(
     key_id: str,
-    db: Session = Depends(get_db),
-    current_user = Depends(AuthService.get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
 ):
     """Activate an API key."""
     service = UserService(db)
     try:
-        api_key = service.activate_api_key(key_id, current_user.id)
+        api_key = await service.activate_api_key(key_id, current_user.id)
         return api_key
     except HTTPException:
         raise

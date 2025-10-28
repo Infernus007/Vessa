@@ -7,6 +7,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, Query
 from sqlalchemy.orm import Session
 import uuid
+import logging
 
 from services.common.database.session import get_db
 from services.common.models.notification import NotificationChannel, NotificationPriority, NotificationPreference, Notification
@@ -23,6 +24,7 @@ from .schemas import (
 from services.auth.core.auth_service import AuthService
 
 router = APIRouter(tags=["notifications"])
+logger = logging.getLogger(__name__)
 
 def get_notification_service(db: Session = Depends(get_db)) -> NotificationService:
     """Get NotificationService instance."""
@@ -167,7 +169,7 @@ async def notification_websocket(
     try:
         # Accept connection first
         await websocket.accept()
-        print(f"[DEBUG] WebSocket connection accepted, waiting for authentication")
+        logger.debug("WebSocket connection accepted, waiting for authentication")
         
         # Wait for authentication message (with timeout)
         try:
@@ -206,7 +208,7 @@ async def notification_websocket(
                     await websocket.close(code=4001, reason="Invalid authentication token")
                     return
             except Exception as auth_error:
-                print(f"[ERROR] Authentication failed: {str(auth_error)}")
+                logger.error("Authentication failed", extra={"error": str(auth_error)})
                 await websocket.send_json({
                     "type": "error",
                     "message": "Authentication failed"
@@ -219,7 +221,7 @@ async def notification_websocket(
                 "type": "auth_success",
                 "message": "Authenticated successfully"
             })
-            print(f"[DEBUG] WebSocket authenticated for user {user.email}")
+            logger.debug("WebSocket authenticated for user", extra={"email": user.email})
             
         except json.JSONDecodeError:
             await websocket.send_json({
@@ -229,7 +231,7 @@ async def notification_websocket(
             await websocket.close(code=4002, reason="Invalid message format")
             return
         except Exception as e:
-            print(f"[ERROR] Authentication error: {str(e)}")
+            logger.error("Authentication error", extra={"error": str(e)})
             await websocket.close(code=4003, reason="Authentication error")
             return
         
@@ -241,7 +243,7 @@ async def notification_websocket(
         ).first()
         
         if not preference:
-            print(f"[DEBUG] Creating WebSocket notification preference for user {user.email}")
+            logger.debug("Creating WebSocket notification preference for user", extra={"email": user.email})
             preference = NotificationPreference(
                 id=str(uuid.uuid4()),
                 user_id=user.id,
@@ -251,21 +253,21 @@ async def notification_websocket(
             )
             db.add(preference)
             db.commit()
-            print(f"[DEBUG] WebSocket preference created for user {user.email}")
+            logger.debug("WebSocket preference created for user", extra={"email": user.email})
         
         # Register websocket
         await service.register_websocket(user.id, websocket)
-        print(f"[DEBUG] WebSocket registered for user {user.email}")
+        logger.debug("WebSocket registered for user", extra={"email": user.email})
         
         try:
             while True:
                 # Keep connection alive
                 data = await websocket.receive_text()
-                print(f"[DEBUG] Received WebSocket message from user {user.email}: {data}")
+                logger.debug("Received WebSocket message from user", extra={"email": user.email, "data": data})
         except WebSocketDisconnect:
             # Unregister on disconnect
             await service.unregister_websocket(user.id)
-            print(f"[DEBUG] WebSocket disconnected for user {user.email}")
+            logger.debug("WebSocket disconnected for user", extra={"email": user.email})
     except Exception as e:
-        print(f"[ERROR] WebSocket error: {str(e)}")
+        logger.error("WebSocket error", extra={"error": str(e)})
         await websocket.close(code=1008, reason=str(e)) 

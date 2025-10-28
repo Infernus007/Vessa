@@ -3,7 +3,7 @@ name = "firewall-app"
 version = "0.1.0"
 description = "ESSA (Vulnerability, Event, and Security Systems Analysis) is an advanced security incident management and analysis platform designed to optimize cybersecurity operations through automation, artificial intelligence, and real-time analytics"
 authors = ["Jash Naik <jashnaik2004@gmail.com>", "Raj Shekhar <infojar001@gmail.com>"]
-license = "MIT"
+license = "Apache-2.0"
 readme = "README.md"
 package-mode = false
 

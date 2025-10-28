@@ -66,6 +66,11 @@ app = FastAPI(
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
 # Configure CORS
+# IMPORTANT: These are development origins. In production:
+# 1. Replace with specific production domains (no wildcards)
+# 2. Set CORS_ORIGINS environment variable to comma-separated list
+# 3. Example: CORS_ORIGINS="https://app.yourdomain.com,https://www.yourdomain.com"
+# 4. The config.py validator will enforce this - wildcards are blocked in production
 origins = [
     "http://localhost:3000",
     "http://localhost:5173",

@@ -43,8 +43,9 @@ class UserResponse(UserBase):
     last_login: Optional[datetime] = None
     profile: Optional['UserProfileResponse'] = None
 
-    class Config:
-        from_attribute = True
+    model_config = {
+        "from_attributes": True
+    }
 
 class PasswordChange(BaseModel):
     """Model for password change requests."""
@@ -83,8 +84,9 @@ class UserProfileResponse(UserProfileBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attribute = True
+    model_config = {
+        "from_attributes": True
+    }
 
 class APIKeyCreate(BaseModel):
     """Schema for creating a new API key."""

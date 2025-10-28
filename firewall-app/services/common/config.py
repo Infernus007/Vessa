@@ -34,6 +34,7 @@ class Settings(BaseSettings):
                 "CRITICAL SECURITY ERROR: JWT secret_key must be set to a secure random string of at least 32 characters. "
                 "Generate one with: openssl rand -hex 32"
             )
+            # Note: Using print to stderr here is intentional for fatal startup errors
             print(f"\n{'='*80}\n{error_msg}\n{'='*80}\n", file=sys.stderr)
             raise ValueError(error_msg)
         return v
@@ -94,11 +95,13 @@ def get_settings() -> Settings:
         # Additional validation for production
         if settings.environment == "production":
             if settings.debug:
+                # Note: Using print to stderr here is intentional for critical configuration warnings
                 print("\n⚠️  WARNING: Debug mode is enabled in production!\n", file=sys.stderr)
             if settings.cors_origins == ["*"]:
                 raise ValueError("CORS wildcard origins are not allowed in production!")
         
         return settings
     except Exception as e:
+        # Note: Using print to stderr here is intentional for fatal startup errors
         print(f"\n{'='*80}\nFATAL: Configuration error: {str(e)}\n{'='*80}\n", file=sys.stderr)
         sys.exit(1) 

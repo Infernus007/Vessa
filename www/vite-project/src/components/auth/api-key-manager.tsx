@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -15,11 +15,15 @@ export function ApiKeyManager() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const { activeApiKey, setActiveApiKey } = useAuthStore();
+  const queryClient = useQueryClient();
 
   // Fetch API keys on component mount
   const { data: apiKeysData, isLoading: isLoadingKey } = useQuery({
     queryKey: ['apiKeys'],
-    queryFn: () => authApi.listApiKeys()
+    queryFn: () => authApi.listApiKeys(),
+    staleTime: 0, // Always consider data stale
+    refetchOnMount: true,
+    refetchOnWindowFocus: false
   });
 
   // Set API key in store if we have one and don't already have an active key
@@ -36,12 +40,16 @@ export function ApiKeyManager() {
         return authApi.createApiKey({ name: 'Default API Key' });
       }
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       setActiveApiKey(data);
       setError(null);
+      // Force immediate refetch to update UI
+      await queryClient.refetchQueries({ queryKey: ['apiKeys'] });
+      toast.success('API key regenerated successfully');
     },
     onError: (error: any) => {
       setError(error.response?.data?.detail || 'Failed to regenerate API key');
+      toast.error('Failed to regenerate API key');
     },
   });
 
@@ -53,12 +61,16 @@ export function ApiKeyManager() {
       }
       return Promise.resolve();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       setActiveApiKey(null);
       setError(null);
+      // Force immediate refetch to update UI
+      await queryClient.refetchQueries({ queryKey: ['apiKeys'] });
+      toast.success('API key revoked successfully');
     },
     onError: (error: any) => {
       setError(error.response?.data?.detail || 'Failed to revoke API key');
+      toast.error('Failed to revoke API key');
     },
   });
 

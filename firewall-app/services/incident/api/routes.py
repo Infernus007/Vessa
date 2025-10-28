@@ -42,12 +42,12 @@ logger = logging.getLogger(__name__)
 
 def get_incident_service(db: Session = Depends(get_db)) -> IncidentService:
     """Get an instance of the IncidentService."""
-    print("[DEBUG] Creating new IncidentService instance")
+    logger.debug("Creating new IncidentService instance")
     return IncidentService(db)
 
 def get_user_service(db: Session = Depends(get_db)) -> UserService:
     """Get an instance of the UserService."""
-    print("[DEBUG] Creating new UserService instance")
+    logger.debug("Creating new UserService instance")
     return UserService(db)
 
 async def verify_api_key(
@@ -66,25 +66,25 @@ async def verify_api_key(
     Raises:
         HTTPException: If API key is missing or invalid
     """
-    print("[DEBUG] Verifying API key")
+    logger.debug("Verifying API key")
     
     if not x_api_key:
-        print("[ERROR] Missing API key in request header")
+        logger.error("Missing API key in request header")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="API key is required"
         )
         
     # Validate API key using user service
-    print(f"[DEBUG] Validating API key: {x_api_key[:8]}...")
+    logger.debug("Validating API key", extra={"key_prefix": x_api_key[:8]})
     if not await user_service.validate_api_key(x_api_key):
-        print("[ERROR] Invalid or expired API key")
+        logger.error("Invalid or expired API key")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired API key"
         )
         
-    print("[DEBUG] API key validated successfully")
+    logger.debug("API key validated successfully")
     return x_api_key
 
 @router.get("/recent")
@@ -105,14 +105,14 @@ async def get_recent_incidents(
     Returns:
         List of recent incidents with user information
     """
-    print(f"[DEBUG] Accessing /recent endpoint with limit={limit}, offset={offset}")
+    logger.debug("Accessing /recent endpoint", extra={"limit": limit, "offset": offset})
     
     # Check if we have any incidents in the database
     incident_count = db.query(Incident).count()
-    print(f"[DEBUG] Total incidents in database: {incident_count}")
+    logger.debug("Total incidents in database", extra={"count": incident_count})
     
     result = service.get_recent_incidents(limit=limit, offset=offset)
-    print(f"[DEBUG] Service returned result: {result}")
+    logger.debug("Service returned result", extra={"result_type": type(result).__name__})
     
     return result
 
@@ -144,36 +144,36 @@ async def get_user_incidents(
     Returns:
         List of incidents for the specified user
     """
-    print(f"[DEBUG] Accessing /user/{user_id}/incidents endpoint")
-    print(f"[DEBUG] Query params: page={page}, page_size={page_size}, status={status}, severity={severity}, tag={tag}")
+    logger.debug("Accessing /user/{user_id}/incidents endpoint", extra={"user_id": user_id})
+    logger.debug("Query params", extra={"page": page, "page_size": page_size, "status": status, "severity": severity, "tag": tag})
     
     try:
         # Query base - filter by user_id
         query = db.query(Incident).filter(Incident.reporter_id == user_id)
-        print(f"[DEBUG] Base query created for user_id: {user_id}")
+        logger.debug("Base query created", extra={"user_id": user_id})
         
         # Apply filters if provided
         if status:
             query = query.filter(Incident.status == status)
-            print(f"[DEBUG] Applied status filter: {status}")
+            logger.debug("Applied status filter", extra={"status": status})
         if severity:
             query = query.filter(Incident.severity == severity)
-            print(f"[DEBUG] Applied severity filter: {severity}")
+            logger.debug("Applied severity filter", extra={"severity": severity})
         if tag:
             query = query.filter(Incident.tags.contains([tag]))
-            print(f"[DEBUG] Applied tag filter: {tag}")
+            logger.debug("Applied tag filter", extra={"tag": tag})
             
         # Calculate pagination
         total_items = query.count()
         total_pages = (total_items + page_size - 1) // page_size
-        print(f"[DEBUG] Pagination stats: total_items={total_items}, total_pages={total_pages}")
+        logger.debug("Pagination stats", extra={"total_items": total_items, "total_pages": total_pages})
         
         # Get paginated results
         incidents = query.order_by(desc(Incident.created_at))\
             .offset((page - 1) * page_size)\
             .limit(page_size)\
             .all()
-        print(f"[DEBUG] Retrieved {len(incidents)} incidents for page {page}")
+        logger.debug("Retrieved incidents", extra={"count": len(incidents), "page": page})
             
         response = IncidentListResponse(
             items=[IncidentResponse.from_orm(incident) for incident in incidents],
@@ -182,11 +182,11 @@ async def get_user_incidents(
             current_page=page,
             page_size=page_size
         )
-        print("[DEBUG] Successfully created response object")
+        logger.debug("Successfully created response object")
         return response
         
     except Exception as e:
-        print(f"[ERROR] Error fetching incidents for user {user_id}: {str(e)}")
+        logger.error("Error fetching incidents for user", extra={"user_id": user_id, "error": str(e)})
         raise HTTPException(
             status_code=500,
             detail=f"Error fetching incidents for user {user_id}: {str(e)}"
@@ -299,7 +299,7 @@ async def analyze_request(
     Returns:
         Enhanced threat analysis results
     """
-    print(f"[DEBUG] Analyzing request from {request.client_ip}")
+    logger.debug("Analyzing request", extra={"client_ip": request.client_ip})
     
     try:
         # Sanitize inputs before processing
@@ -357,11 +357,11 @@ async def analyze_request(
             )
             analysis_result["malicious_request_id"] = malicious_request.id
         
-        print(f"[DEBUG] Analysis complete. Threat score: {analysis_result['threat_score']}")
+        logger.debug("Analysis complete", extra={"threat_score": analysis_result['threat_score']})
         return analysis_result
         
     except Exception as e:
-        print(f"[ERROR] Request analysis failed: {str(e)}")
+        logger.error("Request analysis failed", extra={"error": str(e)})
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Analysis failed: {str(e)}"
@@ -706,21 +706,21 @@ async def get_attack_distribution(
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """Get distribution of attack vectors and patterns."""
-    print("\n[DEBUG] === Starting Attack Distribution Analysis ===")
+    logger.debug("Starting Attack Distribution Analysis")
     
     threshold = _get_time_threshold(time_range)
-    print(f"[DEBUG] Time threshold: {threshold}")
+    logger.debug("Time threshold calculated", extra={"threshold": threshold})
     
     try:
         # Get all incidents within time range
         query = db.query(Incident).filter(Incident.created_at >= threshold)
-        print(f"[DEBUG] SQL Query: {query}")
+        logger.debug("Executing incident query")
         
         incidents = query.all()
-        print(f"[DEBUG] Found {len(incidents)} incidents")
+        logger.debug("Found incidents", extra={"count": len(incidents)})
         
         if len(incidents) == 0:
-            print("[DEBUG] No incidents found in the specified time range")
+            logger.debug("No incidents found in the specified time range")
             return {
                 "attack_vectors": {},
                 "input_points": {},
@@ -734,15 +734,13 @@ async def get_attack_distribution(
         pattern_frequency = {}
         
         for idx, incident in enumerate(incidents):
-            print(f"\n[DEBUG] Processing incident {idx + 1}/{len(incidents)}")
-            print(f"[DEBUG] Incident ID: {incident.id}")
-            print(f"[DEBUG] Title: {incident.title}")
-            print(f"[DEBUG] Created At: {incident.created_at}")
-            print(f"[DEBUG] Detection Source: {incident.detection_source}")
-            print(f"[DEBUG] Affected Assets Type: {type(incident.affected_assets)}")
-            print(f"[DEBUG] Affected Assets: {incident.affected_assets}")
-            print(f"[DEBUG] Tags Type: {type(incident.tags)}")
-            print(f"[DEBUG] Tags: {incident.tags}")
+            logger.debug("Processing incident", extra={
+                "index": f"{idx + 1}/{len(incidents)}",
+                "incident_id": incident.id,
+                "title": incident.title,
+                "created_at": incident.created_at,
+                "detection_source": incident.detection_source
+            })
             
             try:
                 # Process detection source
@@ -750,10 +748,10 @@ async def get_attack_distribution(
                     source = str(incident.detection_source).strip()
                     if source:
                         attack_vectors[source] = attack_vectors.get(source, 0) + 1
-                        print(f"[DEBUG] Added attack vector: {source}")
+                        logger.debug("Added attack vector", extra={"source": source})
                 else:
                     attack_vectors["unknown"] = attack_vectors.get("unknown", 0) + 1
-                    print("[DEBUG] Added unknown attack vector")
+                    logger.debug("Added unknown attack vector")
                 
                 # Process affected assets
                 assets = incident.affected_assets
@@ -766,7 +764,7 @@ async def get_attack_distribution(
                     for asset in assets:
                         if asset:
                             input_points[asset] = input_points.get(asset, 0) + 1
-                            print(f"[DEBUG] Added input point: {asset}")
+                            logger.debug("Added input point", extra={"asset": asset})
                 
                 # Process tags
                 tags = incident.tags
@@ -783,10 +781,10 @@ async def get_attack_distribution(
                             else:
                                 pattern = tag
                             pattern_frequency[pattern] = pattern_frequency.get(pattern, 0) + 1
-                            print(f"[DEBUG] Added pattern: {pattern}")
+                            logger.debug("Added pattern", extra={"pattern": pattern})
             
             except Exception as e:
-                print(f"[ERROR] Error processing incident {incident.id}: {str(e)}")
+                logger.error("Error processing incident", extra={"incident_id": incident.id, "error": str(e)})
                 continue
         
         result = {
@@ -796,15 +794,16 @@ async def get_attack_distribution(
             "time_range": time_range
         }
         
-        print("\n[DEBUG] === Final Results ===")
-        print(f"[DEBUG] Attack Vectors: {attack_vectors}")
-        print(f"[DEBUG] Input Points: {input_points}")
-        print(f"[DEBUG] Pattern Frequency: {pattern_frequency}")
+        logger.debug("Attack distribution analysis complete", extra={
+            "attack_vectors": attack_vectors,
+            "input_points": input_points,
+            "pattern_frequency": pattern_frequency
+        })
         
         return result
         
     except Exception as e:
-        print(f"[ERROR] Unexpected error in get_attack_distribution: {str(e)}")
+        logger.error("Unexpected error in get_attack_distribution", extra={"error": str(e)})
         raise HTTPException(
             status_code=500,
             detail=f"Error processing attack distribution: {str(e)}"
@@ -817,7 +816,6 @@ async def get_severity_statistics(
 ) -> Dict[str, Any]:
     """Get threat severity statistics."""
     threshold = _get_time_threshold(time_range)
-    print("hi")
     # Get requests with threat details
     requests = db.query(MaliciousRequest).filter(
         MaliciousRequest.timestamp >= threshold,
@@ -980,7 +978,6 @@ async def get_user_performance_metrics(
 ) -> Dict[str, Any]:
     """Get performance metrics for all users."""
     service = IncidentService(db)
-    print("hi")
     team_analytics = service.get_team_analytics(time_range)
     
     # Extract and sort user metrics by total responses

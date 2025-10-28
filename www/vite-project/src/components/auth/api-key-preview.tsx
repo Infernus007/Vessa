@@ -12,54 +12,84 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export function ApiKeyPreview() {
     const [isCopied, setIsCopied] = useState(false);
-    const { setApiKey } = useAuthStore();
+    const { setActiveApiKey } = useAuthStore();
     const queryClient = useQueryClient();
 
     const { data: apiKeyData, isLoading: isLoadingKey } = useQuery<APIKeyListResponse>({
         queryKey: ['apiKeys'],
         queryFn: async () => {
             return await authApi.listApiKeys();
-        }
+        },
+        staleTime: 0, // Always consider data stale
+        refetchOnMount: true,
+        refetchOnWindowFocus: false
     });
 
     const apiKey = apiKeyData?.items[0];
 
+    // Debug: Log when apiKey changes
+    console.log('[ApiKeyPreview] Current apiKey data:', apiKey);
+    console.log('[ApiKeyPreview] Full apiKeyData:', apiKeyData);
+
     const { mutate: createKey, isPending: isCreating } = useMutation({
         mutationFn: async () => {
+            console.log('[Create] Creating new API key...');
             const newKey = await authApi.createApiKey({ name: 'Default API Key' });
+            console.log('[Create] New key received:', newKey);
             return newKey;
         },
-        onSuccess: (data) => {
-            setApiKey(data.key);
+        onSuccess: async (data) => {
+            console.log('[Create] Mutation success, updating cache with:', data);
+            setActiveApiKey(data);
+
+            // Immediately update the cache with the new data
             queryClient.setQueryData(['apiKeys'], {
                 items: [data],
                 total: 1
             });
-            queryClient.invalidateQueries({ queryKey: ['apiKeys'] });
+
+            // Force immediate refetch to update UI
+            await queryClient.refetchQueries({ queryKey: ['apiKeys'] });
             toast.success('API key created successfully');
         },
-        onError: () => {
-            toast.error('Failed to create API key');
+        onError: (error: any) => {
+            console.error('Create API key error:', error);
+            toast.error(error?.message || 'Failed to create API key');
         }
     });
 
     const { mutate: regenerateKey, isPending: isRegenerating } = useMutation({
         mutationFn: async () => {
             if (!apiKey?.id) throw new Error('No API key to regenerate');
+            console.log('[Regenerate] Starting regeneration for key:', apiKey.id);
             const newKey = await authApi.regenerateApiKey(apiKey.id);
+            console.log('[Regenerate] New key received from API:', newKey);
             return newKey;
         },
-        onSuccess: (data) => {
-            setApiKey(data.key);
-            queryClient.setQueryData(['apiKeys'], (old: APIKeyListResponse | undefined) => ({
-                items: old?.items ? [data, ...old.items.slice(1)] : [data],
-                total: old?.total || 1
-            }));
-            queryClient.invalidateQueries({ queryKey: ['apiKeys'] });
+        onSuccess: async (data) => {
+            console.log('[Regenerate] Mutation success! New key data:', data);
+            console.log('[Regenerate] New key value:', data.key);
+            setActiveApiKey(data);
+
+            // Update cache immediately with the response data
+            queryClient.setQueryData(['apiKeys'], (oldData: any) => {
+                console.log('[Regenerate] Updating cache. Old data:', oldData);
+                const newData = {
+                    items: [data],
+                    total: 1
+                };
+                console.log('[Regenerate] New cache data:', newData);
+                return newData;
+            });
+
             toast.success('API key regenerated successfully');
+
+            // Trigger a background refetch for consistency
+            queryClient.refetchQueries({ queryKey: ['apiKeys'], type: 'active' });
         },
-        onError: () => {
-            toast.error('Failed to regenerate API key');
+        onError: (error: any) => {
+            console.error('[Regenerate] Error:', error);
+            toast.error(error?.message || 'Failed to regenerate API key');
         }
     });
 
@@ -68,17 +98,15 @@ export function ApiKeyPreview() {
             if (!apiKey?.id) throw new Error('No API key to delete');
             return await authApi.deleteApiKey(apiKey.id);
         },
-        onSuccess: () => {
-            setApiKey(null);
-            queryClient.setQueryData(['apiKeys'], {
-                items: [],
-                total: 0
-            });
-            queryClient.invalidateQueries({ queryKey: ['apiKeys'] });
+        onSuccess: async () => {
+            setActiveApiKey(null);
+            // Force immediate refetch to update UI
+            await queryClient.refetchQueries({ queryKey: ['apiKeys'] });
             toast.success('API key deleted successfully');
         },
-        onError: () => {
-            toast.error('Failed to delete API key');
+        onError: (error: any) => {
+            console.error('Delete API key error:', error);
+            toast.error(error?.message || 'Failed to delete API key');
         }
     });
 
@@ -89,16 +117,14 @@ export function ApiKeyPreview() {
                 ? await authApi.deactivateApiKey(apiKey.id)
                 : await authApi.activateApiKey(apiKey.id);
         },
-        onSuccess: (data) => {
-            queryClient.setQueryData(['apiKeys'], (old: APIKeyListResponse | undefined) => ({
-                items: old?.items ? [data, ...old.items.slice(1)] : [data],
-                total: old?.total || 1
-            }));
-            queryClient.invalidateQueries({ queryKey: ['apiKeys'] });
+        onSuccess: async (data) => {
+            // Force immediate refetch to update UI
+            await queryClient.refetchQueries({ queryKey: ['apiKeys'] });
             toast.success(`API key ${data.is_active ? 'activated' : 'deactivated'} successfully`);
         },
-        onError: () => {
-            toast.error('Failed to toggle API key activation');
+        onError: (error: any) => {
+            console.error('Toggle API key error:', error);
+            toast.error(error?.message || 'Failed to toggle API key activation');
         }
     });
 
@@ -157,7 +183,7 @@ export function ApiKeyPreview() {
                         </Badge>
                     </div>
                     <div className="flex items-center space-x-2">
-                        <code className="flex-1 rounded bg-muted px-2 py-1">
+                        <code key={apiKey.key} className="flex-1 rounded bg-muted px-2 py-1">
                             {isRegenerating ? (
                                 <Skeleton className="h-6 w-full" />
                             ) : (

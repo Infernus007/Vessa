@@ -21,12 +21,16 @@ import os
 import sys
 
 # Try to import absolution package, with fallback
+import logging
+
+logger = logging.getLogger(__name__)
+
 try:
     from absolution.model_loader import ModelLoader
     ABSOLUTION_AVAILABLE = True
-    print("[INFO] Absolution package imported successfully")
+    logger.info("Absolution package imported successfully")
 except ImportError as e:
-    print(f"[WARNING] Absolution package not available: {e}")
+    logger.warning(f"Absolution package not available: {e}")
     ABSOLUTION_AVAILABLE = False
     ModelLoader = None
 
@@ -66,16 +70,16 @@ class IncidentService:
                 multi_model_path = get_model_dir("multi-classifier")
                 
                 self.model_loader = ModelLoader(binary_model_path, multi_model_path)
-                print(f"[INFO] ML models loaded successfully from absolution package")
+                logger.info("ML models loaded successfully from absolution package")
             except Exception as e:
-                print(f"[ERROR] Failed to load ML models: {str(e)}")
+                logger.error(f"Failed to load ML models: {str(e)}")
                 self.dynamic_analysis_enabled = 0
         else:
             if not ABSOLUTION_AVAILABLE:
-                print("[INFO] Absolution package not available, disabling dynamic analysis")
+                logger.info("Absolution package not available, disabling dynamic analysis")
                 self.dynamic_analysis_enabled = 0
             elif not dynamic_analysis_enabled:
-                print("[INFO] Dynamic analysis disabled by configuration")
+                logger.info("Dynamic analysis disabled by configuration")
         
         # Common patterns for threat detection
         self.suspicious_patterns = {
@@ -182,7 +186,7 @@ class IncidentService:
             event_type: Type of event (created, updated, resolved, etc.)
             additional_data: Additional notification data
         """
-        print(f"[DEBUG] Starting notification for incident {incident.id}, event: {event_type}")
+        logger.debug("Starting notification for incident", extra={"incident_id": incident.id, "event_type": event_type})
         
         # Map incident severity to notification priority
         priority_map = {
@@ -209,11 +213,11 @@ class IncidentService:
         if incident.reporter_id == "system" and incident.threat_details and "request_context" in incident.threat_details:
             api_key_id = incident.threat_details["request_context"].get("api_key_id")
             if api_key_id:
-                print(f"[DEBUG] Found API key user {api_key_id}, will notify them")
+                logger.debug("Found API key user, will notify them", extra={"api_key_id": api_key_id})
                 stakeholders.add(api_key_id)
             else:
                 # If no API key user, notify all admin users
-                print("[DEBUG] No API key user found, notifying admin users")
+                logger.debug("No API key user found, notifying admin users")
                 admin_users = self.db.query(User).filter(User.is_superuser == True).all()
                 for admin in admin_users:
                     stakeholders.add(admin.id)
@@ -226,11 +230,11 @@ class IncidentService:
         for response in incident.responses:
             stakeholders.add(response.responder_id)
         
-        print(f"[DEBUG] Found {len(stakeholders)} stakeholders to notify")
+        logger.debug("Found stakeholders to notify", extra={"count": len(stakeholders)})
         
         # Send notifications to all stakeholders
         for user_id in stakeholders:
-            print(f"[DEBUG] Sending notification to user {user_id}")
+            logger.debug("Sending notification to user", extra={"user_id": user_id})
             try:
                 await self.notification_service.create_notification(
                     user_id=user_id,
@@ -240,9 +244,9 @@ class IncidentService:
                     incident_id=incident.id,
                     data=notification_data
                 )
-                print(f"[DEBUG] Successfully sent notification to user {user_id}")
+                logger.debug("Successfully sent notification to user", extra={"user_id": user_id})
             except Exception as e:
-                print(f"[ERROR] Failed to send notification to user {user_id}: {str(e)}")
+                logger.error("Failed to send notification to user", extra={"user_id": user_id, "error": str(e)})
 
     def _generate_incident_message(self, incident: Incident, event_type: str) -> str:
         """Generate a human-readable incident notification message.
@@ -738,7 +742,7 @@ class IncidentService:
             }
             
         except Exception as e:
-            print(f"[ERROR] Threat intelligence analysis failed: {str(e)}")
+            logger.error("Threat intelligence analysis failed", extra={"error": str(e)})
             return {
                 "threat_score": 0.0,
                 "threat_type": "safe",
@@ -1050,7 +1054,7 @@ class IncidentService:
         timestamp: Optional[datetime] = None
     ) -> Dict[str, Any]:
         """Analyze a raw request for security threats using static and/or ML-based analysis based on flags."""
-        print(f"[DEBUG] Starting request analysis for path: {path}")
+        logger.debug("Starting request analysis", extra={"path": path})
         self.threat_score = 0
         findings = []
         threat_types = set()
@@ -1072,7 +1076,7 @@ class IncidentService:
             )
             # If static analysis detects a high-confidence threat and dynamic is disabled, return
             if not self.dynamic_analysis_enabled and static_analysis_result["threat_score"] >= 0.75:
-                print("[DEBUG] High-confidence threat detected in static analysis, skipping ML analysis (flag)")
+                logger.debug("High-confidence threat detected in static analysis, skipping ML analysis")
                 return await self._create_analysis_result(
                     static_analysis_result, path, url, method, headers, body,
                     query_params, client_ip, api_key_id, timestamp
@@ -1080,7 +1084,7 @@ class IncidentService:
 
         # Perform ML-based analysis if enabled
         if self.dynamic_analysis_enabled:
-            print("[DEBUG] Performing ML-based analysis")
+            logger.debug("Performing ML-based analysis")
             ml_analysis_result = self._perform_ml_analysis(
                 method, url, path, headers, body, query_params
             )
@@ -1399,7 +1403,7 @@ class IncidentService:
 
         # Create malicious request record if threat detected
         if final_result["threat_score"] > 0:
-            print(f"[INFO] Threat detected! Score: {final_result['threat_score']}, Type: {final_result['threat_type']}")
+            logger.info("Threat detected", extra={"score": final_result['threat_score'], "type": final_result['threat_type']})
             
             # Get user_id from API key
             reporter_id = "system"  # Default to system
@@ -1409,7 +1413,7 @@ class IncidentService:
                     if api_key and api_key.user_id:
                         reporter_id = api_key.user_id
                 except Exception as e:
-                    print(f"[ERROR] Failed to get user for API key {api_key_id}: {str(e)}")
+                    logger.error("Failed to get user for API key", extra={"api_key_id": api_key_id, "error": str(e)})
             
             # Create malicious request record
             malicious_request = MaliciousRequest(
@@ -1459,7 +1463,7 @@ class IncidentService:
                     final_result["incident_id"] = incident.id
                     
                 except Exception as e:
-                    print(f"[ERROR] Failed to create incident: {str(e)}")
+                    logger.error("Failed to create incident", extra={"error": str(e)})
                     self.db.rollback()
 
         return final_result
@@ -1900,11 +1904,11 @@ Please review the request details and findings to determine if further action is
 
     def get_recent_incidents(self, limit: int = 10, offset: int = 0) -> Dict[str, Any]:
         """Get recent incidents with user information."""
-        print("[DEBUG] Starting get_recent_incidents")
+        logger.debug("Starting get_recent_incidents")
         
         # Get total count
         total_count = self.db.query(Incident).count()
-        print(f"[DEBUG] Total incidents in database: {total_count}")
+        logger.debug("Total incidents in database", extra={"count": total_count})
         
         # Get paginated incidents
         incidents = self.db.query(Incident)\
@@ -1913,7 +1917,7 @@ Please review the request details and findings to determine if further action is
             .limit(limit)\
             .all()
             
-        print(f"[DEBUG] Successfully queried {len(incidents)} incidents")
+        logger.debug("Successfully queried incidents", extra={"count": len(incidents)})
         
         # Format response
         formatted_incidents = []
@@ -1924,9 +1928,9 @@ Please review the request details and findings to determine if further action is
                 if incident.reporter_id:
                     try:
                         reporter = self.user_service.get_user(incident.reporter_id)
-                        print(f"[DEBUG] Got reporter info for incident {incident.id}: {reporter.id if reporter else 'None'}")
+                        logger.debug("Got reporter info for incident", extra={"incident_id": incident.id, "reporter_id": reporter.id if reporter else None})
                     except Exception as e:
-                        print(f"[WARNING] Failed to get reporter info for incident {incident.id}: {str(e)}")
+                        logger.warning("Failed to get reporter info for incident", extra={"incident_id": incident.id, "error": str(e)})
                 
                 # Format incident data
                 incident_data = {
@@ -1953,10 +1957,10 @@ Please review the request details and findings to determine if further action is
                 # as the frontend expects the full incident details without nested user objects
                     
                 formatted_incidents.append(incident_data)
-                print(f"[DEBUG] Successfully formatted incident {incident.id}")
-                
+                logger.debug("Successfully formatted incident", extra={"incident_id": incident.id})
+            
             except Exception as e:
-                print(f"[ERROR] Failed to format incident {incident.id}: {str(e)}")
+                logger.error("Failed to format incident", extra={"incident_id": incident.id, "error": str(e)})
                 continue
         
         response = {
@@ -1965,8 +1969,7 @@ Please review the request details and findings to determine if further action is
             "has_more": (offset + limit) < total_count
         }
         
-        print(f"[DEBUG] Successfully built response with {len(formatted_incidents)} incidents")
-        print(f"[DEBUG] First incident data: {formatted_incidents[0] if formatted_incidents else 'No incidents'}")
+        logger.debug("Successfully built response", extra={"incident_count": len(formatted_incidents)})
         return response
 
     def _get_time_threshold(self, time_range: str) -> datetime:

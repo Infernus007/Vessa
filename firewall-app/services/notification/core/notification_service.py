@@ -13,6 +13,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import httpx
 import json
+import logging
 
 from services.common.models.notification import (
     Notification,
@@ -22,6 +23,8 @@ from services.common.models.notification import (
 )
 from services.common.models.user import User
 from services.common.config import Settings
+
+logger = logging.getLogger(__name__)
 
 class NotificationService:
     """Service for managing and sending notifications."""
@@ -141,13 +144,13 @@ class NotificationService:
         Args:
             notification: Notification to send
         """
-        print(f"[DEBUG] Attempting to send WebSocket notification to user {notification.user_id}")
-        print(f"[DEBUG] Active WebSocket connections: {list(self.active_websockets.keys())}")
+        logger.debug("Attempting to send WebSocket notification", extra={"user_id": notification.user_id})
+        logger.debug("Active WebSocket connections", extra={"connections": list(self.active_websockets.keys())})
         
         if notification.user_id in self.active_websockets:
             websocket = self.active_websockets[notification.user_id]
             try:
-                print(f"[DEBUG] Found active WebSocket for user {notification.user_id}")
+                logger.debug("Found active WebSocket for user", extra={"user_id": notification.user_id})
                 message = {
                     "type": "notification",
                     "data": {
@@ -159,15 +162,15 @@ class NotificationService:
                         "data": notification.data
                     }
                 }
-                print(f"[DEBUG] Sending WebSocket message: {message}")
+                logger.debug("Sending WebSocket message", extra={"message_type": message.get("type")})
                 await websocket.send_json(message)
-                print(f"[DEBUG] Successfully sent WebSocket notification to user {notification.user_id}")
+                logger.debug("Successfully sent WebSocket notification", extra={"user_id": notification.user_id})
             except Exception as e:
-                print(f"[ERROR] Failed to send WebSocket notification to user {notification.user_id}: {str(e)}")
+                logger.error("Failed to send WebSocket notification", extra={"user_id": notification.user_id, "error": str(e)})
                 # Remove dead connection
                 del self.active_websockets[notification.user_id]
         else:
-            print(f"[DEBUG] No active WebSocket connection found for user {notification.user_id}")
+            logger.debug("No active WebSocket connection found", extra={"user_id": notification.user_id})
 
     async def _send_webhook_notification(
         self,

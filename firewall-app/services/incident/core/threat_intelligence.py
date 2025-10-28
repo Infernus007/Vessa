@@ -70,10 +70,10 @@ class ThreatIntelligenceService:
             try:
                 import yara
                 YARA_AVAILABLE = True
-                print("[INFO] YARA library imported successfully")
+                logger.info("YARA library imported successfully")
             except (ImportError, OSError) as e:
                 YARA_AVAILABLE = False
-                print(f"[WARNING] YARA library not available: {e}")
+                logger.warning(f"YARA library not available: {e}")
                 yara = None
         
         # Initialize threat feeds
@@ -83,7 +83,7 @@ class ThreatIntelligenceService:
         if YARA_AVAILABLE:
             self._initialize_yara_rules()
         else:
-            print("[WARNING] YARA rules initialization skipped - YARA not available")
+            logger.warning("YARA rules initialization skipped - YARA not available")
         
         # API keys for external services (should be in environment variables)
         self.virustotal_api_key = None  # os.getenv("VIRUSTOTAL_API_KEY")
@@ -126,7 +126,7 @@ class ThreatIntelligenceService:
     def _initialize_yara_rules(self):
         """Initialize YARA rules for various attack patterns."""
         if not YARA_AVAILABLE:
-            print("[WARNING] Cannot initialize YARA rules - YARA not available")
+            logger.warning("Cannot initialize YARA rules - YARA not available")
             return
             
         yara_rules_content = {
