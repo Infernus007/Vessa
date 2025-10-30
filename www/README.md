@@ -1,122 +1,124 @@
-# Vessa Frontend
+# VESSA Frontend
 
-A modern Next.js web application for monitoring and managing the Vessa Web Application Firewall. Provides real-time request analysis, threat detection, and security monitoring capabilities.
+**React Dashboard for VESSA Web Application Firewall**
 
-## Features
+Real-time security monitoring, threat analytics, and incident management dashboard built with React 19, Vite, and TypeScript.
 
-- Real-time request monitoring
-- Interactive security dashboards
-- Request analysis visualization
-- Attack pattern detection
-- User authentication and authorization
-- Responsive design
+---
 
-## Getting Started
+## 📁 Structure
 
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-2. Set up environment variables:
-   ```bash
-   cp .env.example .env.local
-   # Edit .env.local with your configuration
-   ```
-
-3. Run the development server:
-   ```bash
-   npm run dev
-   ```
-
-4. Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-## Project Structure
+This directory contains the frontend application in `vite-project/`. See [vite-project/README.md](vite-project/README.md) for full documentation.
 
 ```
 www/
-├── app/                # Next.js 13+ app directory
-│   ├── api/           # API routes
-│   ├── (auth)/        # Authentication pages
-│   ├── dashboard/     # Dashboard pages
-│   └── layout.tsx     # Root layout
-├── components/        # Reusable components
-│   ├── ui/           # UI components
-│   ├── forms/        # Form components
-│   └── charts/       # Chart components
-├── lib/              # Utility functions
-├── styles/           # Global styles
-├── public/           # Static assets
-└── types/            # TypeScript types
+└── vite-project/           # Main frontend application
+    ├── src/
+    │   ├── pages/          # Route components (Dashboard, Incidents, etc.)
+    │   ├── components/     # Reusable UI components
+    │   └── lib/            # API clients, state management
+    └── package.json        # Dependencies (React 19, Vite 6.2)
 ```
 
-## Available Scripts
+---
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run start` - Start production server
-- `npm run lint` - Run ESLint
-- `npm run test` - Run tests
-- `npm run type-check` - Run TypeScript type checking
+## ✨ Key Features
 
-## Environment Variables
+### 📊 Real-Time Analytics
+- Live threat detection metrics
+- Interactive time-series charts (Recharts)
+- Attack distribution visualization
+- System health monitoring
 
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8000
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-```
+### 🛡️ Incident Management
+- Comprehensive threat tracking
+- Incident timeline and resolution
+- Detailed request analysis
+- Export capabilities
 
-## Docker Development
+### 🔐 Security & Auth
+- JWT authentication
+- API key management
+- Role-based access control
+- Session persistence (Zustand)
+
+### 🎨 Modern UI/UX
+- **React 19** with TypeScript
+- **Radix UI** accessible components
+- **Tailwind CSS 4.0** styling
+- Dark/light theme support
+- Mobile-responsive design
+
+---
+
+## 🚀 Quick Start
 
 ```bash
-# Build and run with Docker Compose
-docker-compose up --build
+# Navigate to frontend app
+cd vite-project
 
-# Or run directly with Docker
-docker build -t vessa-frontend .
-docker run -p 3000:3000 vessa-frontend
+# Install dependencies
+npm install  # or pnpm install
+
+# Create environment file
+echo "VITE_API_BASE_URL=http://localhost:8000" > .env
+
+# Start development server
+npm run dev
+
+# Access at http://localhost:5173
 ```
 
-## Technologies Used
+---
 
-- Next.js 13+
-- TypeScript
-- Tailwind CSS
-- Shadcn/ui
-- React Query
-- Chart.js
-- Jest
-- Playwright
+## 🛠️ Tech Stack
 
-## Development Guidelines
+| Category | Technology | Version |
+|----------|------------|----------|
+| **Framework** | React | 19.0 |
+| **Build Tool** | Vite | 6.2 |
+| **Language** | TypeScript | 5.7 |
+| **Styling** | Tailwind CSS | 4.0 |
+| **UI Components** | Radix UI | Latest |
+| **State** | Zustand | 5.0 |
+| **Data Fetching** | React Query | 5.67 |
+| **HTTP Client** | Axios | 1.8 |
+| **Routing** | React Router | 7.3 |
+| **Charts** | Recharts | 2.15 |
+| **Forms** | React Hook Form | 7.54 |
+| **Validation** | Zod | 3.24 |
 
-1. Follow the [Next.js App Router](https://nextjs.org/docs/app) conventions
-2. Use TypeScript for all new code
-3. Write tests for new features
-4. Follow the component structure in `components/`
-5. Use the provided UI components from `components/ui/`
+---
 
-## Testing
+## 📚 Documentation
+
+For detailed documentation, see:
+- **[vite-project/README.md](vite-project/README.md)** - Complete frontend docs
+- **[../firewall-app/README.md](../firewall-app/README.md)** - Backend API docs
+
+---
+
+## 🐳 Docker Development
 
 ```bash
-# Run unit tests
-npm run test
+# From project root
+docker-compose up frontend
 
-# Run E2E tests
-npm run test:e2e
-
-# Run with coverage
-npm run test:coverage
+# Access at http://localhost:5173
 ```
 
-## Contributing
+---
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run tests and linting
-5. Submit a pull request
+## 🤝 Contributing
 
-## License
+See [vite-project/README.md](vite-project/README.md) for:
+- Development guidelines
+- Component structure
+- Coding standards
+- Testing procedures
 
-MIT License - see LICENSE file for details 
+---
+
+## 📄 License
+
+Apache License 2.0 - see [LICENSE](../LICENSE) file for details
