@@ -522,20 +522,12 @@ Apache License 2.0 - see [LICENSE](../LICENSE) file for details
 
 ---
 
-## 🔗 Resources
-
-- **Documentation:** [../DOCUMENTATION_INDEX.md](../DOCUMENTATION_INDEX.md)
-- **Phase 1 Summary:** [../PHASE1_ALL_FIXES_COMPLETED.md](../PHASE1_ALL_FIXES_COMPLETED.md)
-- **Phase 2 Summary:** [../PHASE2_COMPLETED.md](../PHASE2_COMPLETED.md)
-- **Production Readiness:** [../PRODUCTION_READINESS_FINAL.md](../PRODUCTION_READINESS_FINAL.md)
-
----
-
 ## 📞 Support
 
-- **Issues:** GitHub Issues
-- **Documentation:** See DOCUMENTATION_INDEX.md
-- **Security:** Report security issues privately
+- **Issues:** [GitHub Issues](https://github.com/yourusername/vessa/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/yourusername/vessa/discussions)
+- **Documentation:** See [Root README](../README.md) and this file
+- **Security:** Report security issues privately to jashnaik2004@gmail.com
 
 ---
 
