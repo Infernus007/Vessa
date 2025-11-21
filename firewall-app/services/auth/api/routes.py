@@ -97,29 +97,21 @@ async def register_user(
 ):
     """Register a new user."""
     user_service = UserService(db)
-    try:
-        # Check for duplicate email
-        existing_user = db.query(User).filter(User.email == user_data.email).first()
-        if existing_user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email already registered"
-            )
-            
-        user = user_service.create_user(
-            email=user_data.email,
-            password=user_data.password,
-            name=user_data.name,
-        )
-        db.refresh(user)
-        return user
-    except HTTPException as e:
-        raise e
-    except Exception as e:
+    # Check for duplicate email
+    existing_user = db.query(User).filter(User.email == user_data.email).first()
+    if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            detail="Email already registered"
         )
+            
+    user = user_service.create_user(
+        email=user_data.email,
+        password=user_data.password,
+        name=user_data.name,
+    )
+    db.refresh(user)
+    return user
 
 @router.post("/change-password", response_model=dict)
 async def change_password(
@@ -136,4 +128,8 @@ async def change_password(
     
     if success:
         return {"message": "Password changed successfully"}
-    return {"message": "Failed to change password"} 
+    
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Failed to change password. Please verify your current password."
+    )

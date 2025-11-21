@@ -41,6 +41,11 @@ python-json-logger = "^4.0.0"
 gunicorn = "^23.0.0"
 pyyaml = "^6.0.1"
 
+[tool.poetry.group.dev.dependencies]
+pytest = "<8.0.0"
+pytest-asyncio = ">=0.21.0,<0.24.0"
+pytest-cov = "^7.0.0"
+
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"

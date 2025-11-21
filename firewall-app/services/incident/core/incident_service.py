@@ -40,6 +40,7 @@ from services.user.core.user_service import UserService
 from services.notification.core.notification_service import NotificationService
 from services.common.models.notification import NotificationPriority
 from services.incident.core.threat_intelligence import ThreatIntelligenceService
+from services.incident.core.scoring import ThreatScore, ThreatType
 
 class IncidentService:
     """Service for managing security incidents and request analysis."""
@@ -169,7 +170,7 @@ class IncidentService:
             'windows': [
                 'c:\\', 'd:\\', 'windows\\', 'program files',
                 'system32', 'boot', 'config', 'repair',
-                'documents and settings', 'users', 'administrator'
+                'documents and settings', 'administrator'
             ]
         }
 
@@ -520,9 +521,9 @@ class IncidentService:
         user_agent: Optional[str] = None
     ) -> Dict[str, Any]:
         """Perform comprehensive static analysis for attack detection."""
-        threat_score = 0
+        threat_score = 0.0
         findings = []
-        threat_type = "safe"
+        threat_type = ThreatType.SAFE
         
         # Convert all inputs to strings for pattern matching
         path_str = str(request_path).lower()
@@ -554,9 +555,9 @@ class IncidentService:
         
         for pattern in sql_patterns:
             if re.search(pattern, combined_input, re.IGNORECASE):
-                threat_score += 85
+                threat_score += ThreatScore.SQL_INJECTION
                 findings.append(f"SQL injection pattern detected: {pattern}")
-                threat_type = "sql_injection"
+                threat_type = ThreatType.SQL_INJECTION
                 break
         
         # XSS Detection
@@ -580,9 +581,9 @@ class IncidentService:
         
         for pattern in xss_patterns:
             if re.search(pattern, combined_input, re.IGNORECASE):
-                threat_score += 80
+                threat_score += ThreatScore.XSS
                 findings.append(f"XSS pattern detected: {pattern}")
-                threat_type = "xss"
+                threat_type = ThreatType.XSS
                 break
         
         # Command Injection Detection
@@ -599,9 +600,9 @@ class IncidentService:
         
         for pattern in cmd_patterns:
             if re.search(pattern, combined_input, re.IGNORECASE):
-                threat_score += 90
+                threat_score += ThreatScore.COMMAND_INJECTION
                 findings.append(f"Command injection pattern detected: {pattern}")
-                threat_type = "command_injection"
+                threat_type = ThreatType.COMMAND_INJECTION
                 break
         
         # Path Traversal Detection
@@ -624,9 +625,9 @@ class IncidentService:
         
         for pattern in path_patterns:
             if re.search(pattern, combined_input, re.IGNORECASE):
-                threat_score += 85
+                threat_score += ThreatScore.PATH_TRAVERSAL
                 findings.append(f"Path traversal pattern detected: {pattern}")
-                threat_type = "path_traversal"
+                threat_type = ThreatType.PATH_TRAVERSAL
                 break
         
         # NoSQL Injection Detection
@@ -657,15 +658,15 @@ class IncidentService:
         
         for pattern in nosql_patterns:
             if re.search(pattern, combined_input, re.IGNORECASE):
-                threat_score += 80
+                threat_score += ThreatScore.NOSQL_INJECTION
                 findings.append(f"NoSQL injection pattern detected: {pattern}")
-                threat_type = "nosql_injection"
+                threat_type = ThreatType.NOSQL_INJECTION
                 break
         
         # Suspicious Headers Detection
         if headers:
             if "X-Forwarded-For" in headers:
-                threat_score += 10
+                threat_score += ThreatScore.SUSPICIOUS_PROXY
                 findings.append("Suspicious proxy usage detected")
             
             # Check for suspicious user agents
@@ -675,24 +676,24 @@ class IncidentService:
                 "sqlmap", "nikto", "zap", "burp", "acunetix"
             ]
             if any(agent in user_agent for agent in suspicious_agents):
-                threat_score += 20
+                threat_score += ThreatScore.SUSPICIOUS_USER_AGENT
                 findings.append(f"Suspicious user agent detected: {user_agent}")
         
         # Admin Access Attempts
         if "admin" in path_str:
-            threat_score += 20
+            threat_score += ThreatScore.ADMIN_ACCESS_ATTEMPT
             findings.append("Attempted admin access")
-            threat_type = "suspicious"
+            threat_type = ThreatType.SUSPICIOUS
         
         # Normalize threat score to 0-1 range
-        normalized_score = min(threat_score, 100) / 100.0
+        normalized_score = min(threat_score, 1.0)
         
         # Determine if should block (lower threshold for better security)
-        should_block = normalized_score >= 0.5  # Changed from 0.75 to 0.5
+        should_block = normalized_score >= ThreatScore.BLOCKING_THRESHOLD
         
         return {
             "threat_score": normalized_score,
-            "threat_type": self._validate_threat_type(threat_type if threat_score > 0 else "safe"),
+            "threat_type": self._validate_threat_type(threat_type if threat_score > 0 else ThreatType.SAFE),
             "findings": findings,
             "should_block": should_block,
             "analysis_type": "static"
@@ -733,9 +734,9 @@ class IncidentService:
             
             return {
                 "threat_score": threat_analysis["overall_threat_score"] / 100.0,  # Normalize to 0-1
-                "threat_type": self._validate_threat_type("suspicious" if threat_analysis.get("overall_threat_score", 0) > 50 else "safe"),
+                "threat_type": self._validate_threat_type(ThreatType.SUSPICIOUS if threat_analysis.get("overall_threat_score", 0) > 50 else ThreatType.SAFE),
                 "findings": threat_analysis.get("recommendations", []),
-                "should_block": threat_analysis.get("overall_threat_score", 0) >= 75,
+                "should_block": threat_analysis.get("overall_threat_score", 0) >= (ThreatScore.BLOCKING_THRESHOLD * 100),
                 "analysis_type": "threat_intelligence",
                 "threat_indicators": threat_analysis.get("threat_indicators", []),
                 "confidence": 0.5  # Default confidence
@@ -797,7 +798,7 @@ class IncidentService:
             threat_type = static_analysis["threat_type"]
         
         # Determine if should block (use normalized score)
-        should_block = combined_threat_score >= 0.5  # Changed from 0.75 to 0.5
+        should_block = combined_threat_score >= ThreatScore.BLOCKING_THRESHOLD
         
         return {
             "threat_score": combined_threat_score,
@@ -1096,12 +1097,20 @@ class IncidentService:
                 )
 
         # If both are enabled, combine results
+        # If both are enabled, combine results
         if self.static_analysis_enabled and self.dynamic_analysis_enabled:
             combined_result = self._combine_analysis_results(
                 static_analysis_result, ml_analysis_result
             )
             return await self._create_analysis_result(
                 combined_result, path, url, method, headers, body,
+                query_params, client_ip, api_key_id, timestamp
+            )
+        
+        # If only static analysis is enabled, return its result
+        if self.static_analysis_enabled and static_analysis_result:
+            return await self._create_analysis_result(
+                static_analysis_result, path, url, method, headers, body,
                 query_params, client_ip, api_key_id, timestamp
             )
 
@@ -1127,6 +1136,8 @@ class IncidentService:
         client_ip: Optional[str]
     ) -> Dict[str, Any]:
         """Perform static analysis using pattern matching and heuristics."""
+        # Reset threat score for this analysis
+        self.threat_score = 0
         findings = []
         threat_types = set()
         pattern_matches = {

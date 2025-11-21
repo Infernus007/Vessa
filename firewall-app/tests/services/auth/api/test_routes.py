@@ -41,7 +41,7 @@ def create_test_database():
         conn.commit()
 
 # Create test database before running tests
-create_test_database()
+# create_test_database()
 
 # Create test engine
 engine = create_engine(
@@ -132,7 +132,7 @@ def test_me_endpoint():
     except:
         print(f"Raw Response: {response.text}")
 
-test_me_endpoint()
+# test_me_endpoint()
 
 def test_register_company(client):
     """Test company registration endpoint."""

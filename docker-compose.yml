@@ -3,8 +3,8 @@ version: '3.8'
 services:
   backend:
     build:
-      context: ./firewall-app
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: firewall-app/Dockerfile
     ports:
       - "8000:8000"
     volumes:
@@ -16,13 +16,14 @@ services:
       - DEBUG=true
       - HOST=0.0.0.0
       - PORT=8000
-      - DB_USER=vessa
-      - DB_PASSWORD=vessa_dev_password
+      - DB_USER=${DB_USER:-vessa}
+      - DB_PASSWORD=${DB_PASSWORD:-vessa_dev_password}
       - DB_HOST=db
       - DB_PORT=3306
       - DB_NAME=vessa
       - REDIS_URL=redis://redis:6379/0
-      - JWT_SECRET_KEY=dev_secret_key_change_in_production
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-dev_secret_key_change_in_production}
+    # Override CMD for development to use reload
     command: poetry run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     networks:
       - vessa-network
@@ -51,16 +52,21 @@ services:
   db:
     image: mysql:8.0
     environment:
-      - MYSQL_ROOT_PASSWORD=root_password
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-root_password}
       - MYSQL_DATABASE=vessa
-      - MYSQL_USER=vessa
-      - MYSQL_PASSWORD=vessa_dev_password
+      - MYSQL_USER=${DB_USER:-vessa}
+      - MYSQL_PASSWORD=${DB_PASSWORD:-vessa_dev_password}
     ports:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     networks:
       - vessa-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7-alpine
@@ -71,6 +77,11 @@ services:
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 networks:
   vessa-network:
@@ -78,4 +89,4 @@ networks:
 
 volumes:
   mysql_data:
-  redis_data: 
+  redis_data:

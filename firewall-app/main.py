@@ -37,7 +37,9 @@ from services.common.middleware.https_redirect import HTTPSRedirectMiddleware
 from services.common.database.session import get_db
 from services.incident.core.incident_service import IncidentService
 from services.incident.api.schemas import SimpleRequestAnalysis, ThreatAnalysisResponse
+from services.incident.api.schemas import SimpleRequestAnalysis, ThreatAnalysisResponse
 from services.common.utils.input_sanitizer import sanitize_for_ml_analysis
+from services.common.middleware.error_handler import GlobalErrorHandlerMiddleware
 
 # Load environment variables
 load_dotenv()
@@ -124,6 +126,9 @@ app.add_middleware(HTTPSRedirectMiddleware)
 
 # 5. General rate limiting (blocks excessive requests)
 app.add_middleware(RateLimitMiddleware)
+
+# 6. Global Error Handler (catches unhandled exceptions)
+app.add_middleware(GlobalErrorHandlerMiddleware)
 
 # Include routers with API versioning
 app.include_router(auth_router, prefix="/api/v1/auth")

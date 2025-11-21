@@ -98,38 +98,119 @@ VESSA is functional and suitable for:
 
 ## 🚀 Quick Start
 
-### Option 1: Docker Compose (Recommended)
+### Prerequisites
+
+- **Docker & Docker Compose** (easiest option)
+- OR **Python 3.9+** with Poetry + **Node.js 18+** + **MySQL 8.0+** + **Redis 6.0+**
+
+### Option 1: Docker Compose (Recommended - 5 Minutes)
+
+Get VESSA running in 5 minutes with Docker:
 
 ```bash
-# Clone repository
+# 1. Clone the repository
 git clone https://github.com/yourusername/vessa.git
 cd vessa
 
-# Start all services (backend, frontend, MySQL, Redis)
-docker-compose up --build
+# 2. Start all services (this will take a few minutes on first run)
+docker compose up --build
 
-# Access applications
-# Frontend: http://localhost:5173
-# Backend API: http://localhost:8000
-# API Docs: http://localhost:8000/docs
+# 3. Wait for services to start, then access:
+# - Frontend Dashboard: http://localhost:5173
+# - Backend API: http://localhost:8000
+# - API Documentation: http://localhost:8000/docs
 ```
 
-### Option 2: Reverse Proxy Mode (Protect Existing App)
+**First Time Setup:**
+1. Register a new account at http://localhost:5173
+2. Login and generate an API key from Settings
+3. Start protecting your applications!
+
+**Verify Detection is Working:**
+```bash
+# Option A: Inside Docker container
+docker compose exec backend python verify_detection.py
+
+# Option B: Locally (requires Poetry)
+cd firewall-app
+poetry install
+poetry run python verify_detection.py
+```
+
+### Option 2: Protect an Existing Application (Reverse Proxy)
+
+Already have an app running? Protect it without code changes:
 
 ```bash
-# Protect any backend without code changes
+# 1. Install VESSA backend
 cd firewall-app
-python -m services.waf.reverse_proxy \
+poetry install
+
+# 2. Start the WAF in reverse proxy mode
+poetry run python -m services.waf.reverse_proxy \
   --backend http://localhost:3000 \
   --port 8080 \
   --mode block
 
-# Your app is now protected at http://localhost:8080
+# 3. Your app is now protected!
+# Access it through: http://localhost:8080
+# All requests are analyzed and malicious ones are blocked
 ```
 
-### Option 3: Manual Setup
+### Option 3: Manual Setup (For Development)
 
-See detailed instructions in [firewall-app/README.md](firewall-app/README.md)
+For developers who want full control:
+
+```bash
+# 1. Clone and setup infrastructure
+git clone https://github.com/yourusername/vessa.git
+cd vessa
+docker compose up -d db redis  # Start MySQL and Redis only
+
+# 2. Setup backend
+cd firewall-app
+poetry install
+cp env.example .env
+# Edit .env with your database credentials
+poetry run alembic upgrade head  # Run migrations
+poetry run uvicorn main:app --reload
+
+# 3. Setup frontend (in a new terminal)
+cd www/vite-project
+npm install
+echo "VITE_API_BASE_URL=http://localhost:8000" > .env
+npm run dev
+
+# 4. Access the application
+# Frontend: http://localhost:5173
+# Backend: http://localhost:8000
+# API Docs: http://localhost:8000/docs
+```
+
+### Next Steps After Installation
+
+1. **Test the WAF**: Use the verification script to ensure detection is working
+   ```bash
+   cd firewall-app
+   poetry run python verify_detection.py
+   ```
+
+2. **Configure Detection**: Edit `firewall-app/.env` to adjust WAF behavior
+   ```bash
+   WAF_MODE=block              # block, monitor, simulate, or challenge
+   STATIC_ANALYSIS_ENABLED=1   # Pattern-based detection (recommended)
+   DYNAMIC_ANALYSIS_ENABLED=0  # ML-based detection (optional, slower)
+   ```
+
+3. **Integrate with Your App**: See [Integration Guide](firewall-app/README.md#integration) for:
+   - FastAPI middleware integration
+   - WSGI integration (Flask, Django)
+   - Reverse proxy configuration
+
+4. **Monitor Threats**: Access the dashboard at http://localhost:5173 to view:
+   - Real-time threat detection
+   - Attack analytics and trends
+   - Incident management
 
 ---
 

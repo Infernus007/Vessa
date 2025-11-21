@@ -36,15 +36,12 @@ async def create_user(
 ):
     """Create a new user."""
     service = UserService(db)
-    try:
-        user = service.create_user(
-            email=user_data.email,
-            password=user_data.password,
-            name=user_data.name,
-        )
-        return user
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    user = service.create_user(
+        email=user_data.email,
+        password=user_data.password,
+        name=user_data.name,
+    )
+    return user
 
 @router.get("/me", response_model=UserResponse)
 async def get_current_user_info(
@@ -98,16 +95,14 @@ async def change_password(
 ):
     """Change the current user's password."""
     service = UserService(db)
-    try:
-        success = service.change_password(
-            user_id=current_user.id,
-            current_password=password_data.current_password,
-            new_password=password_data.new_password
-        )
-        if success:
-            return {"message": "Password changed successfully"}
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    success = service.change_password(
+        user_id=current_user.id,
+        current_password=password_data.current_password,
+        new_password=password_data.new_password
+    )
+    if success:
+        return {"message": "Password changed successfully"}
+    raise HTTPException(status_code=400, detail="Failed to change password")
 
 @router.get("/me/profile", response_model=UserProfileResponse)
 async def get_current_user_profile(
@@ -129,16 +124,13 @@ async def update_current_user_profile(
 ):
     """Update the current user's profile."""
     service = UserService(db)
-    try:
-        profile = service.create_profile(
-            user_id=current_user.id,
-            title=profile_data.title,
-            bio=profile_data.bio,
-            expertise=profile_data.expertise
-        )
-        return profile
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    profile = service.create_profile(
+        user_id=current_user.id,
+        title=profile_data.title,
+        bio=profile_data.bio,
+        expertise=profile_data.expertise
+    )
+    return profile
 
 @router.post("/me/api-keys", response_model=APIKeyResponse)
 async def create_api_key(
@@ -183,13 +175,8 @@ async def regenerate_api_key(
 ):
     """Regenerate an API key while keeping its metadata."""
     service = UserService(db)
-    try:
-        api_key = await service.regenerate_api_key(key_id, current_user.id)
-        return api_key
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    api_key = await service.regenerate_api_key(key_id, current_user.id)
+    return api_key
 
 @router.delete("/me/api-keys/{key_id}")
 async def delete_api_key(
@@ -199,13 +186,8 @@ async def delete_api_key(
 ):
     """Delete an API key."""
     service = UserService(db)
-    try:
-        await service.delete_api_key(key_id, current_user.id)
-        return {"message": "API key deleted successfully"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    await service.delete_api_key(key_id, current_user.id)
+    return {"message": "API key deleted successfully"}
 
 @router.post("/me/api-keys/{key_id}/deactivate", response_model=APIKeyResponse)
 async def deactivate_api_key(
@@ -215,13 +197,8 @@ async def deactivate_api_key(
 ):
     """Deactivate an API key."""
     service = UserService(db)
-    try:
-        api_key = await service.deactivate_api_key(key_id, current_user.id)
-        return api_key
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    api_key = await service.deactivate_api_key(key_id, current_user.id)
+    return api_key
 
 @router.post("/me/api-keys/{key_id}/activate", response_model=APIKeyResponse)
 async def activate_api_key(
@@ -231,10 +208,5 @@ async def activate_api_key(
 ):
     """Activate an API key."""
     service = UserService(db)
-    try:
-        api_key = await service.activate_api_key(key_id, current_user.id)
-        return api_key
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e)) 
+    api_key = await service.activate_api_key(key_id, current_user.id)
+    return api_key

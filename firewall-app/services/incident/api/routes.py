@@ -54,18 +54,7 @@ async def verify_api_key(
     x_api_key: str = Header(None),
     user_service: UserService = Depends(get_user_service)
 ):
-    """Verify that the API key is valid and active.
-    
-    Args:
-        x_api_key: API key from request header
-        user_service: User service instance for validation
-        
-    Returns:
-        str: The validated API key
-        
-    Raises:
-        HTTPException: If API key is missing or invalid
-    """
+    """Verify that the API key is valid and active."""
     logger.debug("Verifying API key")
     
     if not x_api_key:
@@ -78,7 +67,7 @@ async def verify_api_key(
     # Validate API key using user service
     logger.debug("Validating API key", extra={"key_prefix": x_api_key[:8]})
     if not await user_service.validate_api_key(x_api_key):
-        logger.error("Invalid or expired API key")
+        logger.warning("Invalid or expired API key")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired API key"
@@ -94,27 +83,9 @@ async def get_recent_incidents(
     service: IncidentService = Depends(get_incident_service),
     db: Session = Depends(get_db)
 ) -> RecentIncidentsResponse:
-    """Get recent incidents with user information.
-    
-    Args:
-        limit: Maximum number of incidents to return
-        offset: Number of incidents to skip
-        service: Incident service instance
-        db: Database session
-    
-    Returns:
-        List of recent incidents with user information
-    """
+    """Get recent incidents with user information."""
     logger.debug("Accessing /recent endpoint", extra={"limit": limit, "offset": offset})
-    
-    # Check if we have any incidents in the database
-    incident_count = db.query(Incident).count()
-    logger.debug("Total incidents in database", extra={"count": incident_count})
-    
-    result = service.get_recent_incidents(limit=limit, offset=offset)
-    logger.debug("Service returned result", extra={"result_type": type(result).__name__})
-    
-    return result
+    return service.get_recent_incidents(limit=limit, offset=offset)
 
 @router.get("/user/{user_id}/incidents", response_model=IncidentListResponse)
 async def get_user_incidents(
@@ -128,69 +99,37 @@ async def get_user_incidents(
     db: Session = Depends(get_db),
     api_key: str = Depends(verify_api_key)
 ) -> IncidentListResponse:
-    """Get all incidents for a specific user with filtering and pagination.
-    
-    Args:
-        user_id: ID of the user to fetch incidents for
-        page: Page number for pagination
-        page_size: Number of items per page
-        status: Optional filter by incident status
-        severity: Optional filter by incident severity
-        tag: Optional filter by incident tag
-        service: Incident service instance
-        db: Database session
-        api_key: API key for authentication
-    
-    Returns:
-        List of incidents for the specified user
-    """
+    """Get all incidents for a specific user with filtering and pagination."""
     logger.debug("Accessing /user/{user_id}/incidents endpoint", extra={"user_id": user_id})
-    logger.debug("Query params", extra={"page": page, "page_size": page_size, "status": status, "severity": severity, "tag": tag})
     
-    try:
-        # Query base - filter by user_id
-        query = db.query(Incident).filter(Incident.reporter_id == user_id)
-        logger.debug("Base query created", extra={"user_id": user_id})
+    # Query base - filter by user_id
+    query = db.query(Incident).filter(Incident.reporter_id == user_id)
+    
+    # Apply filters if provided
+    if status:
+        query = query.filter(Incident.status == status)
+    if severity:
+        query = query.filter(Incident.severity == severity)
+    if tag:
+        query = query.filter(Incident.tags.contains([tag]))
         
-        # Apply filters if provided
-        if status:
-            query = query.filter(Incident.status == status)
-            logger.debug("Applied status filter", extra={"status": status})
-        if severity:
-            query = query.filter(Incident.severity == severity)
-            logger.debug("Applied severity filter", extra={"severity": severity})
-        if tag:
-            query = query.filter(Incident.tags.contains([tag]))
-            logger.debug("Applied tag filter", extra={"tag": tag})
-            
-        # Calculate pagination
-        total_items = query.count()
-        total_pages = (total_items + page_size - 1) // page_size
-        logger.debug("Pagination stats", extra={"total_items": total_items, "total_pages": total_pages})
+    # Calculate pagination
+    total_items = query.count()
+    total_pages = (total_items + page_size - 1) // page_size
+    
+    # Get paginated results
+    incidents = query.order_by(desc(Incident.created_at))\
+        .offset((page - 1) * page_size)\
+        .limit(page_size)\
+        .all()
         
-        # Get paginated results
-        incidents = query.order_by(desc(Incident.created_at))\
-            .offset((page - 1) * page_size)\
-            .limit(page_size)\
-            .all()
-        logger.debug("Retrieved incidents", extra={"count": len(incidents), "page": page})
-            
-        response = IncidentListResponse(
-            items=[IncidentResponse.from_orm(incident) for incident in incidents],
-            total_items=total_items,
-            total_pages=total_pages,
-            current_page=page,
-            page_size=page_size
-        )
-        logger.debug("Successfully created response object")
-        return response
-        
-    except Exception as e:
-        logger.error("Error fetching incidents for user", extra={"user_id": user_id, "error": str(e)})
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error fetching incidents for user {user_id}: {str(e)}"
-        )
+    return IncidentListResponse(
+        items=[IncidentResponse.from_orm(incident) for incident in incidents],
+        total_items=total_items,
+        total_pages=total_pages,
+        current_page=page,
+        page_size=page_size
+    )
 
 @router.post("/", response_model=IncidentResponse)
 async def create_incident(
@@ -199,20 +138,15 @@ async def create_incident(
 ):
     """Create a new security incident."""
     service = IncidentService(db)
-    
-    try:
-        incident_obj = await service.create_incident(
-            title=incident.title,
-            description=incident.description,
-            severity=incident.severity,
-            detection_source=incident.detection_source or "manual",  # Default to manual if not provided
-            reporter_id=incident.reporter_id or "system",  # Default to system if not provided
-            affected_assets=incident.affected_assets,
-            tags=incident.tags
-        )
-        return incident_obj
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    return await service.create_incident(
+        title=incident.title,
+        description=incident.description,
+        severity=incident.severity,
+        detection_source=incident.detection_source or "manual",
+        reporter_id=incident.reporter_id or "system",
+        affected_assets=incident.affected_assets,
+        tags=incident.tags
+    )
 
 @router.get("/", response_model=IncidentListResponse)
 async def list_incidents(
@@ -226,17 +160,13 @@ async def list_incidents(
 ):
     """List incidents with filtering and pagination."""
     service = IncidentService(db)
-    
-    try:
-        return service.list_incidents(
-            page=page,
-            page_size=page_size,
-            status=status,
-            severity=severity,
-            tag=tag
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    return service.list_incidents(
+        page=page,
+        page_size=page_size,
+        status=status,
+        severity=severity,
+        tag=tag
+    )
 
 @router.get("/{incident_id}", response_model=IncidentResponse)
 async def get_incident(
@@ -259,21 +189,16 @@ async def update_incident(
 ):
     """Update an existing incident."""
     service = IncidentService(db)
-    
-    try:
-        incident = service.update_incident(
-            incident_id=incident_id,
-            title=update.title,
-            description=update.description,
-            severity=update.severity,
-            status=update.status,
-            resolution_notes=update.resolution_notes,
-            mitigation_steps=update.mitigation_steps,
-            false_positive=update.false_positive
-        )
-        return incident
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    return service.update_incident(
+        incident_id=incident_id,
+        title=update.title,
+        description=update.description,
+        severity=update.severity,
+        status=update.status,
+        resolution_notes=update.resolution_notes,
+        mitigation_steps=update.mitigation_steps,
+        false_positive=update.false_positive
+    )
 
 @router.post("/analyze-request", response_model=ThreatAnalysisResponse)
 async def analyze_request(
@@ -282,126 +207,73 @@ async def analyze_request(
     user_service: UserService = Depends(get_user_service),
     api_key: str = Depends(verify_api_key)
 ) -> Dict[str, Any]:
-    """Analyze a request for security threats with enhanced threat intelligence.
-    
-    This endpoint now includes:
-    - Static pattern analysis
-    - Machine learning analysis (if enabled)
-    - Threat intelligence analysis (IP/domain/URL reputation, YARA rules)
-    - Comprehensive threat scoring
-    
-    Args:
-        request: Request data to analyze
-        service: Incident service instance
-        user_service: User service instance
-        api_key: API key for authentication
-    
-    Returns:
-        Enhanced threat analysis results
-    """
+    """Analyze a request for security threats with enhanced threat intelligence."""
     logger.debug("Analyzing request", extra={"client_ip": request.client_ip})
     
-    try:
-        # Sanitize inputs before processing
-        sanitized_data = sanitize_for_ml_analysis(
-            client_ip=request.client_ip,
-            request_path=request.request_path,
-            request_method=request.request_method,
-            request_headers=dict(request.request_headers),
-            request_body=str(request.request_body) if request.request_body else None
+    # Sanitize inputs before processing
+    sanitized_data = sanitize_for_ml_analysis(
+        client_ip=request.client_ip,
+        request_path=request.request_path,
+        request_method=request.request_method,
+        request_headers=dict(request.request_headers),
+        request_body=str(request.request_body) if request.request_body else None
+    )
+    
+    # Get user from API key
+    user = await user_service.get_user_by_api_key(api_key)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid API key"
         )
-        
-        # Get user from API key
-        user = await user_service.get_user_by_api_key(api_key)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid API key"
-            )
-        
-        # Extract user agent from sanitized headers
-        user_agent = sanitized_data["request_headers"].get("User-Agent", "")
-        
-        # Perform enhanced analysis with threat intelligence using sanitized data
-        analysis_result = await service.analyze_request(
+    
+    # Extract user agent from sanitized headers
+    user_agent = sanitized_data["request_headers"].get("User-Agent", "")
+    
+    # Perform enhanced analysis with threat intelligence using sanitized data
+    analysis_result = await service.analyze_request(
+        source_ip=request.client_ip,
+        request_path=request.request_path,
+        request_method=request.request_method,
+        headers=request.request_headers,
+        body=request.request_body,
+        user_agent=user_agent
+    )
+    
+    # Add user context to analysis
+    analysis_result["analyzed_by"] = user.id
+    analysis_result["analysis_timestamp"] = datetime.utcnow().isoformat()
+    
+    # Create malicious request record if threat detected
+    if analysis_result["threat_score"] > 0:
+        malicious_request = service.add_malicious_request(
             source_ip=request.client_ip,
             request_path=request.request_path,
             request_method=request.request_method,
+            threat_type=analysis_result["threat_type"],
+            threat_score=analysis_result["threat_score"],
             headers=request.request_headers,
             body=request.request_body,
-            user_agent=user_agent
+            user_agent=user_agent,
+            threat_details={
+                "analysis_methods": analysis_result.get("analysis_methods", []),
+                "static_analysis": analysis_result.get("static_analysis", {}),
+                "threat_intelligence_analysis": analysis_result.get("threat_intelligence_analysis", {}),
+                "confidence": analysis_result.get("confidence", 0.0),
+                "recommendations": analysis_result.get("recommendations", [])
+            }
         )
-        
-        # Add user context to analysis
-        analysis_result["analyzed_by"] = user.id
-        analysis_result["analysis_timestamp"] = datetime.utcnow().isoformat()
-        
-        # Create malicious request record if threat detected
-        if analysis_result["threat_score"] > 0:
-            malicious_request = service.add_malicious_request(
-                source_ip=request.client_ip,
-                request_path=request.request_path,
-                request_method=request.request_method,
-                threat_type=analysis_result["threat_type"],
-                threat_score=analysis_result["threat_score"],
-                headers=request.request_headers,
-                body=request.request_body,
-                user_agent=user_agent,
-                threat_details={
-                    "analysis_methods": analysis_result.get("analysis_methods", []),
-                    "static_analysis": analysis_result.get("static_analysis", {}),
-                    "threat_intelligence_analysis": analysis_result.get("threat_intelligence_analysis", {}),
-                    "confidence": analysis_result.get("confidence", 0.0),
-                    "recommendations": analysis_result.get("recommendations", [])
-                }
-            )
-            analysis_result["malicious_request_id"] = malicious_request.id
-        
-        logger.debug("Analysis complete", extra={"threat_score": analysis_result['threat_score']})
-        return analysis_result
-        
-    except Exception as e:
-        logger.error("Request analysis failed", extra={"error": str(e)})
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Analysis failed: {str(e)}"
-        )
+        analysis_result["malicious_request_id"] = malicious_request.id
+    
+    logger.debug("Analysis complete", extra={"threat_score": analysis_result['threat_score']})
+    return analysis_result
 
 @router.post("/analyze/raw", response_model=ThreatAnalysisResponse)
 async def analyze_raw_request(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Analyze a raw request from middleware for security threats.
-    
-    This endpoint accepts the raw FastAPI Request object directly.
-    No transformation needed in middleware - just forward the entire request.
-    
-    Example middleware integration:
-    ```python
-    async def security_middleware(request: Request, call_next):
-        # Forward the entire request object
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                "http://localhost:8000/incidents/analyze/raw",
-                headers=dict(request.headers),
-                content=await request.body()
-            )
-            result = response.json()
-            
-        # Block request if needed
-        if result["should_block"]:
-            raise HTTPException(
-                status_code=403, 
-                detail={
-                    "message": "Request blocked by security rules",
-                    "findings": result["findings"]
-                }
-            )
-            
-        return await call_next(request)
-    ```
-    """
+    """Analyze a raw request from middleware for security threats."""
     service = IncidentService(db)
     
     # Get request body if present
@@ -441,69 +313,7 @@ async def analyze_service_request(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Analyze requests forwarded from other backend services.
-    
-    This endpoint accepts the raw middleware request object from any backend service.
-    Just forward the entire request object as you receive it in your middleware.
-    
-    Example Node.js/Express middleware:
-    ```javascript
-    app.use(async (req, res, next) => {
-        try {
-            const response = await fetch('https://your-security-service/incidents/analyze/service', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-API-Key': 'your-api-key',
-                    'X-Service-Name': 'payment-service'
-                },
-                body: JSON.stringify(req)  // Just forward the entire request object
-            });
-            
-            const result = await response.json();
-            if (result.should_block) {
-                return res.status(403).json({
-                    error: 'Request blocked by security service',
-                    findings: result.findings
-                });
-            }
-            next();
-        } catch (error) {
-            next();
-        }
-    });
-    ```
-
-    Example Rust/Actix middleware:
-    ```rust
-    async fn security_middleware(req: ServiceRequest) -> Result<ServiceResponse, Error> {
-        let client = Client::new();
-        
-        // Forward the entire request object
-        let response = client
-            .post("https://your-security-service/incidents/analyze/service")
-            .header("X-API-Key", "your-api-key")
-            .header("X-Service-Name", "auth-service")
-            .json(&req)  // ServiceRequest implements Serialize
-            .send()
-            .await?;
-            
-        let result = response.json::<SecurityResponse>().await?;
-        if result.should_block {
-            return Ok(req.into_response(
-                HttpResponse::Forbidden()
-                    .json(json!({
-                        "error": "Request blocked by security service",
-                        "findings": result.findings
-                    }))
-                    .into_body(),
-            ));
-        }
-
-        Ok(req.into_response(next.call(req).await?.into_body()))
-    }
-    ```
-    """
+    """Analyze requests forwarded from other backend services."""
     service = IncidentService(db)
     
     # Verify API key
@@ -518,7 +328,6 @@ async def analyze_service_request(
     service_name = request.headers.get("x-service-name", "unknown-service")
     
     # Extract common fields based on framework
-    # We'll detect the framework and extract accordingly
     method = None
     url = None
     headers = {}
@@ -527,20 +336,22 @@ async def analyze_service_request(
     query_params = {}
     
     # Express.js request format
-    if "originalUrl" in raw_request:  # Express.js specific
+    if "originalUrl" in raw_request:
         method = raw_request.get("method")
         url = raw_request.get("originalUrl") or raw_request.get("url")
         headers = raw_request.get("headers", {})
         body = raw_request.get("body")
         client_ip = (
             raw_request.get("ip") or 
-            headers.get("x-forwarded-for", "").split(",")[0].strip() or 
-            raw_request.get("connection", {}).get("remoteAddress")
+            # Only trust x-forwarded-for if explicitly configured/validated in production
+            # For now, we prioritize direct IP or connection address
+            raw_request.get("connection", {}).get("remoteAddress") or
+            headers.get("x-forwarded-for", "").split(",")[0].strip()
         )
         query_params = raw_request.get("query", {})
     
     # Actix-web request format
-    elif "_method" in raw_request:  # Actix specific
+    elif "_method" in raw_request:
         method = raw_request.get("_method")
         url = raw_request.get("uri", "")
         headers = raw_request.get("headers", {})
@@ -549,7 +360,7 @@ async def analyze_service_request(
         query_params = dict(item.split("=") for item in url.split("?")[1].split("&")) if "?" in url else {}
     
     # Axum request format
-    elif "uri" in raw_request and "version" in raw_request:  # Axum specific
+    elif "uri" in raw_request and "version" in raw_request:
         method = raw_request.get("method")
         url = raw_request.get("uri")
         headers = raw_request.get("headers", {})
@@ -557,33 +368,19 @@ async def analyze_service_request(
         client_ip = headers.get("x-forwarded-for", "").split(",")[0].strip()
         query_params = raw_request.get("query", {})
     
-    # Generic/unknown format - try common fields
+    # Generic/unknown format
     else:
         method = raw_request.get("method") or raw_request.get("_method")
-        url = (
-            raw_request.get("url") or 
-            raw_request.get("uri") or 
-            raw_request.get("path") or 
-            ""
-        )
+        url = raw_request.get("url") or raw_request.get("uri") or raw_request.get("path") or ""
         headers = raw_request.get("headers", {})
-        body = (
-            raw_request.get("body") or 
-            raw_request.get("payload") or 
-            raw_request.get("data")
-        )
+        body = raw_request.get("body") or raw_request.get("payload") or raw_request.get("data")
         client_ip = (
             raw_request.get("ip") or 
             raw_request.get("clientIp") or 
             raw_request.get("remoteAddress") or
             headers.get("x-forwarded-for", "").split(",")[0].strip()
         )
-        query_params = (
-            raw_request.get("query") or 
-            raw_request.get("queryParams") or 
-            raw_request.get("params") or 
-            {}
-        )
+        query_params = raw_request.get("query") or raw_request.get("queryParams") or raw_request.get("params") or {}
     
     # Analyze the request
     analysis = await service.analyze_raw_request(
@@ -609,22 +406,25 @@ async def analyze_service_request(
     )
 
 # Analytics endpoints
+
+def _get_time_threshold(time_range: str) -> datetime:
+    """Helper to get datetime threshold from time range string."""
+    now = datetime.utcnow()
+    if time_range == "24h":
+        return now - timedelta(hours=24)
+    elif time_range == "7d":
+        return now - timedelta(days=7)
+    elif time_range == "30d":
+        return now - timedelta(days=30)
+    return datetime.min
+
 @router.get("/analytics/overview", response_model=ThreatAnalytics)
 async def get_threat_analytics(
     time_range: str = Query("24h", description="Time range (24h, 7d, 30d, all)"),
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """Get overview of threat analytics."""
-    # Calculate time threshold based on range
-    now = datetime.utcnow()
-    if time_range == "24h":
-        threshold = now - timedelta(hours=24)
-    elif time_range == "7d":
-        threshold = now - timedelta(days=7)
-    elif time_range == "30d":
-        threshold = now - timedelta(days=30)
-    else:
-        threshold = datetime.min
+    threshold = _get_time_threshold(time_range)
 
     # Query base - filter by time
     query = db.query(MaliciousRequest).filter(
@@ -661,17 +461,16 @@ async def get_time_series_data(
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """Get time series data for threats."""
-    now = datetime.utcnow()
+    threshold = _get_time_threshold(time_range)
     
-    # Calculate time threshold and interval
+    # Determine group format based on interval/db type (assuming SQLite/MySQL/PG compatibility needs)
+    # For simplicity using MySQL/SQLite compatible format if possible, or just Python processing if volume is low.
+    # But here we want optimization.
+    # Assuming MySQL for now based on previous context (MySQL mentioned in summary).
+    
     if time_range == "24h":
-        threshold = now - timedelta(hours=24)
         group_format = "%Y-%m-%d %H:00:00"
-    elif time_range == "7d":
-        threshold = now - timedelta(days=7)
-        group_format = "%Y-%m-%d"
-    else:  # 30d
-        threshold = now - timedelta(days=30)
+    else:
         group_format = "%Y-%m-%d"
 
     # Base query
@@ -706,310 +505,45 @@ async def get_attack_distribution(
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """Get distribution of attack vectors and patterns."""
-    logger.debug("Starting Attack Distribution Analysis")
-    
     threshold = _get_time_threshold(time_range)
-    logger.debug("Time threshold calculated", extra={"threshold": threshold})
     
-    try:
-        # Get all incidents within time range
-        query = db.query(Incident).filter(Incident.created_at >= threshold)
-        logger.debug("Executing incident query")
-        
-        incidents = query.all()
-        logger.debug("Found incidents", extra={"count": len(incidents)})
-        
-        if len(incidents) == 0:
-            logger.debug("No incidents found in the specified time range")
-            return {
-                "attack_vectors": {},
-                "input_points": {},
-                "pattern_frequency": {},
-                "time_range": time_range
-            }
-        
-        # Initialize counters
-        attack_vectors = {}
-        input_points = {}
-        pattern_frequency = {}
-        
-        for idx, incident in enumerate(incidents):
-            logger.debug("Processing incident", extra={
-                "index": f"{idx + 1}/{len(incidents)}",
-                "incident_id": incident.id,
-                "title": incident.title,
-                "created_at": incident.created_at,
-                "detection_source": incident.detection_source
-            })
-            
-            try:
-                # Process detection source
-                if incident.detection_source:
-                    source = str(incident.detection_source).strip()
-                    if source:
-                        attack_vectors[source] = attack_vectors.get(source, 0) + 1
-                        logger.debug("Added attack vector", extra={"source": source})
-                else:
-                    attack_vectors["unknown"] = attack_vectors.get("unknown", 0) + 1
-                    logger.debug("Added unknown attack vector")
-                
-                # Process affected assets
-                assets = incident.affected_assets
-                if assets:
-                    if isinstance(assets, str):
-                        assets = [assets]  # Convert string to list
-                    elif isinstance(assets, list):
-                        assets = [str(asset).strip() for asset in assets if asset]
+    # Attack vectors (detection_source)
+    vectors = db.query(
+        Incident.detection_source,
+        func.count(Incident.id)
+    ).filter(
+        Incident.created_at >= threshold
+    ).group_by(Incident.detection_source).all()
+    
+    attack_vectors = {v[0] or "unknown": v[1] for v in vectors}
+    
+    # Fetch only necessary columns for input points and patterns
+    incidents = db.query(Incident.affected_assets, Incident.tags).filter(
+        Incident.created_at >= threshold
+    ).all()
+    
+    input_points = {}
+    pattern_frequency = {}
+    
+    for assets, tags in incidents:
+        # Process assets
+        if assets:
+            asset_list = assets if isinstance(assets, list) else [str(a) for a in str(assets).split(',')]
+            for asset in asset_list:
+                if asset:
+                    input_points[asset] = input_points.get(asset, 0) + 1
                     
-                    for asset in assets:
-                        if asset:
-                            input_points[asset] = input_points.get(asset, 0) + 1
-                            logger.debug("Added input point", extra={"asset": asset})
-                
-                # Process tags
-                tags = incident.tags
-                if tags:
-                    if isinstance(tags, str):
-                        tags = [tags]  # Convert string to list
-                    elif isinstance(tags, list):
-                        tags = [str(tag).strip() for tag in tags if tag]
+        # Process tags
+        if tags:
+            tag_list = tags if isinstance(tags, list) else [str(t) for t in str(tags).split(',')]
+            for tag in tag_list:
+                if tag:
+                    pattern = tag.replace("attack:", "") if tag.startswith("attack:") else tag
+                    pattern_frequency[pattern] = pattern_frequency.get(pattern, 0) + 1
                     
-                    for tag in tags:
-                        if tag:
-                            if tag.startswith("attack:"):
-                                pattern = tag.replace("attack:", "")
-                            else:
-                                pattern = tag
-                            pattern_frequency[pattern] = pattern_frequency.get(pattern, 0) + 1
-                            logger.debug("Added pattern", extra={"pattern": pattern})
-            
-            except Exception as e:
-                logger.error("Error processing incident", extra={"incident_id": incident.id, "error": str(e)})
-                continue
-        
-        result = {
-            "attack_vectors": attack_vectors,
-            "input_points": input_points,
-            "pattern_frequency": pattern_frequency,
-            "time_range": time_range
-        }
-        
-        logger.debug("Attack distribution analysis complete", extra={
-            "attack_vectors": attack_vectors,
-            "input_points": input_points,
-            "pattern_frequency": pattern_frequency
-        })
-        
-        return result
-        
-    except Exception as e:
-        logger.error("Unexpected error in get_attack_distribution", extra={"error": str(e)})
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error processing attack distribution: {str(e)}"
-        )
-
-@router.get("/analytics/severity", response_model=ThreatSeverityStats)
-async def get_severity_statistics(
-    time_range: str = Query("24h", description="Time range (24h, 7d, 30d, all)"),
-    db: Session = Depends(get_db)
-) -> Dict[str, Any]:
-    """Get threat severity statistics."""
-    threshold = _get_time_threshold(time_range)
-    # Get requests with threat details
-    requests = db.query(MaliciousRequest).filter(
-        MaliciousRequest.timestamp >= threshold,
-        MaliciousRequest.threat_details.isnot(None)
-    ).all()
-    
-    severity_distribution = {"critical": 0, "high": 0, "medium": 0, "low": 0}
-    risk_factors = {}
-    impact_scores = {"confidentiality": 0, "integrity": 0, "availability": 0}
-    total_requests = len(requests)
-    
-    for req in requests:
-        if not req.threat_details:
-            continue
-            
-        # Get risk assessment
-        risk = req.threat_details.get("risk_assessment", {})
-        severity_distribution[risk.get("level", "medium")] += 1
-        
-        # Aggregate risk factors
-        for factor in risk.get("factors", []):
-            factor_name = factor.get("factor", "unknown")
-            risk_factors[factor_name] = risk_factors.get(factor_name, 0) + 1
-            
-        # Aggregate impact scores
-        impact = risk.get("potential_impact", {})
-        impact_scores["confidentiality"] += impact.get("confidentiality", 0)
-        impact_scores["integrity"] += impact.get("integrity", 0)
-        impact_scores["availability"] += impact.get("availability", 0)
-    
-    # Normalize impact scores
-    if total_requests > 0:
-        for key in impact_scores:
-            impact_scores[key] /= total_requests
-    
     return {
-        "severity_distribution": severity_distribution,
-        "risk_factors": risk_factors,
-        "impact_scores": impact_scores,
+        "attack_vectors": attack_vectors,
+        "input_points": input_points,
+        "pattern_frequency": pattern_frequency,
         "time_range": time_range
     }
-
-@router.get("/analytics/geo", response_model=GeoAnalytics)
-async def get_geo_analytics(
-    time_range: str = Query("24h", description="Time range (24h, 7d, 30d, all)"),
-    db: Session = Depends(get_db)
-) -> Dict[str, Any]:
-    """Get geographic distribution of threats."""
-    threshold = _get_time_threshold(time_range)
-    
-    # Get requests with client info
-    requests = db.query(MaliciousRequest).filter(
-        MaliciousRequest.timestamp >= threshold,
-        MaliciousRequest.threat_details.isnot(None)
-    ).all()
-    
-    ip_distribution = {}
-    platform_distribution = {}
-    proxy_usage = {"proxy": 0, "direct": 0}
-    
-    for req in requests:
-        if not req.threat_details or "request_context" not in req.threat_details:
-            continue
-            
-        client_info = req.threat_details["request_context"].get("client_info", {})
-        
-        # Aggregate IP data
-        ip_version = client_info.get("ip_version", "unknown")
-        ip_distribution[ip_version] = ip_distribution.get(ip_version, 0) + 1
-        
-        # Aggregate platform data
-        platform = client_info.get("platform", "unknown")
-        platform_distribution[platform] = platform_distribution.get(platform, 0) + 1
-        
-        # Count proxy usage
-        if client_info.get("is_proxy", False):
-            proxy_usage["proxy"] += 1
-        else:
-            proxy_usage["direct"] += 1
-    
-    return {
-        "ip_distribution": ip_distribution,
-        "platform_distribution": platform_distribution,
-        "proxy_usage": proxy_usage,
-        "time_range": time_range
-    }
-
-@router.get("/analytics/system-impact", response_model=SystemImpactAnalytics)
-async def get_system_impact(
-    time_range: str = Query("24h", description="Time range (24h, 7d, 30d, all)"),
-    db: Session = Depends(get_db)
-) -> Dict[str, Any]:
-    """Get system impact analytics."""
-    threshold = _get_time_threshold(time_range)
-    
-    # Get requests with threat details
-    requests = db.query(MaliciousRequest).filter(
-        MaliciousRequest.timestamp >= threshold,
-        MaliciousRequest.threat_details.isnot(None)
-    ).all()
-    
-    affected_systems = {}
-    mitigation_priorities = {"immediate": 0, "high": 0, "normal": 0}
-    
-    for req in requests:
-        if not req.threat_details:
-            continue
-            
-        # Get impact assessment
-        impact = req.threat_details.get("risk_assessment", {}).get("potential_impact", {})
-        
-        # Aggregate affected systems
-        for system in impact.get("affected_systems", []):
-            affected_systems[system] = affected_systems.get(system, 0) + 1
-            
-        # Count mitigation priorities
-        priority = req.threat_details.get("risk_assessment", {}).get("mitigation_priority", "normal")
-        mitigation_priorities[priority] = mitigation_priorities.get(priority, 0) + 1
-    
-    return {
-        "affected_systems": affected_systems,
-        "mitigation_priorities": mitigation_priorities,
-        "time_range": time_range
-    }
-
-# User Analytics Endpoints
-@router.get("/analytics/users/{user_id}", response_model=Dict[str, Any])
-async def get_user_analytics(
-    user_id: str,
-    time_range: str = Query("30d", description="Time range (24h, 7d, 30d, all)"),
-    db: Session = Depends(get_db)
-) -> Dict[str, Any]:
-    """Get analytics for a specific user."""
-    service = IncidentService(db)
-    return service.get_user_analytics(user_id, time_range)
-
-@router.get("/analytics/team", response_model=Dict[str, Any])
-async def get_team_analytics(
-    time_range: str = Query("30d", description="Time range (24h, 7d, 30d, all)"),
-    db: Session = Depends(get_db)
-) -> Dict[str, Any]:
-    """Get analytics for the entire team."""
-    service = IncidentService(db)
-    return service.get_team_analytics(time_range)
-
-@router.get("/analytics/engagement", response_model=Dict[str, Any])
-async def get_user_engagement(
-    time_range: str = Query("30d", description="Time range (24h, 7d, 30d, all)"),
-    db: Session = Depends(get_db)
-) -> Dict[str, Any]:
-    """Get user engagement metrics."""
-    service = IncidentService(db)
-    return service.get_user_engagement_metrics(time_range)
-
-@router.get("/analytics/user-performance", response_model=Dict[str, Any])
-async def get_user_performance_metrics(
-    time_range: str = Query("30d", description="Time range (24h, 7d, 30d, all)"),
-    top_n: int = Query(5, description="Number of top performers to return"),
-    db: Session = Depends(get_db)
-) -> Dict[str, Any]:
-    """Get performance metrics for all users."""
-    service = IncidentService(db)
-    team_analytics = service.get_team_analytics(time_range)
-    
-    # Extract and sort user metrics by total responses
-    user_metrics = team_analytics["member_metrics"]
-    sorted_users = sorted(
-        user_metrics.items(),
-        key=lambda x: x[1]["metrics"]["total_responses"],
-        reverse=True
-    )[:top_n]
-    
-    return {
-        "top_performers": [
-            {
-                "user_id": user_id,
-                "name": metrics["name"],
-                "email": metrics["email"],
-                "department": metrics["department"],
-                "role": metrics["role"],
-                "metrics": metrics["metrics"]
-            }
-            for user_id, metrics in sorted_users
-        ],
-        "time_range": time_range
-    }
-
-def _get_time_threshold(time_range: str) -> datetime:
-    """Helper to get datetime threshold from time range string."""
-    now = datetime.utcnow()
-    if time_range == "24h":
-        return now - timedelta(hours=24)
-    elif time_range == "7d":
-        return now - timedelta(days=7)
-    elif time_range == "30d":
-        return now - timedelta(days=30)
-    return datetime.min 

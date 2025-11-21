@@ -1,13 +1,5 @@
 # VESSA WAF - Standalone Reverse Proxy Mode
-# 
-# This Dockerfile creates a standalone WAF that can protect any backend
-# application without requiring code changes.
-#
-# Usage:
-#   docker build -f Dockerfile.waf -t vessa-waf .
-#   docker run -p 8080:8080 -e BACKEND_URL=http://yourapp:3000 vessa-waf
-
-FROM python:3.11-slim
+FROM python:3.9-slim
 
 LABEL maintainer="VESSA Team <jashnaik2004@gmail.com>"
 LABEL description="VESSA WAF - Standalone Reverse Proxy Mode"
@@ -19,9 +11,12 @@ RUN apt-get update && apt-get install -y \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements
-COPY requirements.txt .
-COPY ../absolution/requirements.txt requirements-absolution.txt
+# Create non-root user
+RUN groupadd -r vessa && useradd -r -g vessa vessa
+
+# Copy requirements (assumes build context is project root)
+COPY firewall-app/requirements.txt .
+COPY absolution/requirements.txt requirements-absolution.txt
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
@@ -29,11 +24,17 @@ RUN pip install --no-cache-dir -r requirements-absolution.txt
 RUN pip install --no-cache-dir pyyaml
 
 # Copy application code
-COPY services /app/services
-COPY ../absolution /app/absolution
+COPY firewall-app/services /app/services
+COPY absolution /app/absolution
 
 # Install absolution package
 RUN cd /app/absolution && pip install -e .
+
+# Change ownership
+RUN chown -R vessa:vessa /app
+
+# Switch to non-root user
+USER vessa
 
 # Environment variables
 ENV PYTHONUNBUFFERED=1
@@ -56,4 +57,3 @@ CMD python -m services.waf.reverse_proxy \
     --port ${PORT} \
     --host ${HOST} \
     --mode ${WAF_MODE}
-
